@@ -13,7 +13,7 @@ import java.util.Date;
  * 
  * @author deonwu
  */
-public class ShortUrlModel implements Serializable {
+public class ShortUrlModel implements Serializable, Cloneable{
 	/**
 	 * 
 	 */
@@ -102,13 +102,17 @@ public class ShortUrlModel implements Serializable {
 	
 	public String shortKeySource = null;
 	
+	
 	/**
-	 * 下一跳URL，有可能是PC版地址，也有可能是移动地址，也有可能是错误的地址。
+	 * 长地址
 	 */
-	public String nextUrl = null;
+	public String longUrl = null;
 
-	public boolean isNewIP = false;
-	public boolean isNewUser = false;
+	/**
+	 * 移动版长地址
+	 */
+	public String mobileLongUrl = null;
+	
 	
 	public Date clickTime = new Date(System.currentTimeMillis());
 
@@ -122,5 +126,15 @@ public class ShortUrlModel implements Serializable {
 		}else {
 			return false;
 		}
+	}
+	
+	public ShortUrlModel copy(){
+		ShortUrlModel m = null;
+		try {
+			m = (ShortUrlModel) this.clone();
+		} catch (CloneNotSupportedException e) {
+		}
+		
+		return m;
 	}
 }

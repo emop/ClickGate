@@ -4,3 +4,7 @@
 *.jar
 *.war
 *.ear
+
+short_url.conf
+target
+logs
