@@ -82,15 +82,15 @@ public class ClickGateApp
         DateFormat format= new SimpleDateFormat("yy-MM-dd");            
         //root.debug("Remove log before " + format.format(d));
         for(File log : r.listFiles()){
-            if(!log.getName().startsWith(name))continue;
+            //if(!log.getName().startsWith(name))continue;
             String[] p = log.getName().split("\\.");
             String logDate = p[p.length -1];
             if(logDate.indexOf("-") > 0){
                 try {
-                        if(format.parse(logDate).getTime() < d.getTime()){
-                                root.info("remove old log file:" + log.getName());
-                                log.delete();
-                        }
+                    if(format.parse(logDate).getTime() < d.getTime()){
+                            root.info("remove old log file:" + log.getName());
+                            log.delete();
+                    }
                 } catch (Exception e) {
                         root.info(e.toString());
                 }

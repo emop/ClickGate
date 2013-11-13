@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,6 +24,7 @@ import com.taodian.api.TaodianApi;
 import com.taodian.click.ShortUrlModel;
 import com.taodian.click.ShortUrlService;
 import com.taodian.click.monitor.Benchmark;
+import com.taodian.emop.Settings;
 
 /**
  * 短网址跳转服务。利用TaodianAPI，把短地址转换为长连接。
@@ -64,6 +66,8 @@ public class ShortUrlServlet extends HttpServlet {
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.setCharacterEncoding("utf8");
 		response.setHeader("Cache-Control", "no-cache");
+		
+		//log.debug("-------------------key:" + key);
 		
 		if(key != null && key.length() > 4){
 			Benchmark mark = Benchmark.start(Benchmark.SHORT_KEY_GET);
@@ -114,6 +118,7 @@ public class ShortUrlServlet extends HttpServlet {
 				
 				mark.attachObject(model);
 				NextURL n = postShortCheck(model, req);
+				//log.warn("next url:" + n.isOK + ", url:" + n.url);
 				if(n.isOK){
 					service.writeClickLog(model);
 					mark.done();				
@@ -146,8 +151,17 @@ public class ShortUrlServlet extends HttpServlet {
 	 * 4. UID
 	 */
 	protected void trackClickInfo(ShortUrlModel m, HttpServletRequest req, HttpServletResponse response){
-		m.agent = req.getHeader("HTTP_USER_AGENT");
-		m.refer = req.getHeader("HTTP_REFERER");
+		
+		/*
+		Enumeration e = req.getHeaderNames();
+		for(;e.hasMoreElements(); ){
+			String n = e.nextElement() + "";
+			log.debug(n + " -->" + req.getHeader(n));
+		}
+		*/
+		
+		m.agent = req.getHeader("User-Agent");
+		m.refer = req.getHeader("Http_Referer");
 		m.ip = req.getHeader("HTTP_X_REAL_IP");
 		
 		m.agent = m.agent == null ? "" : m.agent;
@@ -166,7 +180,7 @@ public class ShortUrlServlet extends HttpServlet {
 			m.ip = req.getHeader("HTTP_CLIENT_IP");			
 		}
 		if(m.ip == null){
-			m.ip = "127.0.0.1";
+			m.ip = req.getRemoteHost();
 		}
 		
 		for(Cookie c: req.getCookies()){
@@ -207,11 +221,13 @@ public class ShortUrlServlet extends HttpServlet {
 			String ref = secret + model.shortKey + "," + req.getParameter("user_id") + "," + req.getParameter("refer") + "," + clickTime;
 			String hash = TaodianApi.MD5(ref);
 			
-			String code = req.getParameter("code");
+			String code = req.getParameter("check_code");
 			
 			if(code != null && hash != null && hash.equals(code)){
 				next.isOK = true;
 				model.refer = req.getParameter("refer");
+			}else {
+				log.debug(String.format("hash:%s != %s, ref:%s", code, hash, ref));
 			}
 		}
 		
@@ -239,9 +255,13 @@ public class ShortUrlServlet extends HttpServlet {
 		p.put("user_id", model.uid);
 		p.put("refer", model.refer);
 		p.put("short_key", model.shortKey);
-		p.put("auto_mobile", req.getParameter("auto_mobile"));		
+		p.put("auto_mobile", req.getParameter("auto_mobile"));	
+		p.put("source_domain", Settings.getString(Settings.TAOKE_SOURCE_DOMAIN, "wap.emop.cn"));
 		
 		String ref = secret + model.shortKey + "," + model.uid + "," + model.refer + "," + clickTime;
+		
+		//log.debug(String.format("hash ref:%s", ref));
+
 	 	String hash = TaodianApi.MD5(ref);
 
 	 	int i = (int)(Math.random() * 32) % 32;

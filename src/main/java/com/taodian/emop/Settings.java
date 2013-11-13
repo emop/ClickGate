@@ -22,8 +22,15 @@ public class Settings {
 	public static final String TAODIAN_APPSECRET = "taodian.api_secret";
 	public static final String TAODIAN_APPROUTE = "taodian.api_route";
 	
+	public static final String WRITE_LOG_QUEUE_SIZE = "write_log_queue_size";
+	public static final String WRITE_LOG_THREAD_COUNT = "write_log_thread_count";
 	
+	public static final String WRITE_ACCESS_LOG = "write_access_log";
+
+	public static final String TAOKE_SOURCE_DOMAIN = "taoke_source_domain";
+
 	
+
 	
 	private static Log log = LogFactory.getLog("click.settings");
 	protected static Properties settings = System.getProperties();	

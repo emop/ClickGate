@@ -31,6 +31,10 @@
 *  taodian.api_route -- API路由地址，默认：http://api.zaol.cn/api/route
 *  log_level -- (debug,info,warn) 默认info
 *  max_log_days -- 日志最多保留多少天，默认10.
+*  write_log_queue_size -- 写点击统计的队列长度， 默认：1024
+*  write_log_thread_count -- 写点击统计的线程数量，默认：10
+*  write_access_log -- 是否写访问日志本地文件。 默认:y, 可选值:(y|n)
+*  taoke_source_domain -- 淘客访问跳转域名。默认:www.emop.cn
 
 
 本地编译和运行

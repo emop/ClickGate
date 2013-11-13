@@ -2,6 +2,9 @@ package com.taodian.click;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,6 +22,7 @@ import com.taodian.emop.utils.SimpleCacheApi;
  */
 public class ShortUrlService {
 	private Log log = LogFactory.getLog("click.shorturl.service");
+	private Log accesslog = null;
 
 	private TaodianApi api = null;
 	private CacheApi cache = new SimpleCacheApi();
@@ -26,6 +30,7 @@ public class ShortUrlService {
 	
 	private long nextUID = 0;
 	private int MODE = 10000;
+	protected ThreadPoolExecutor workerPool = null;
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -48,6 +53,22 @@ public class ShortUrlService {
 		}else {
 			log.info("The taodian.api_id and taodian.api_secret Java properties are required.");
 			System.exit(255);
+		}
+		
+		int writeLogThread = Settings.getInt(Settings.WRITE_LOG_THREAD_COUNT, 10);
+		int queueSize = Settings.getInt(Settings.WRITE_LOG_QUEUE_SIZE, 1024);
+		
+		log.debug("start log write thread pool, core size:" + writeLogThread + ", queue size:");
+		workerPool = new ThreadPoolExecutor(
+				writeLogThread,
+				writeLogThread * 2,
+				10, 
+				TimeUnit.SECONDS, 
+				new LinkedBlockingDeque<Runnable>(queueSize)
+				);
+		
+		if(Settings.getString(Settings.WRITE_ACCESS_LOG, "y").equals("y")){
+			accesslog = LogFactory.getLog("click.accesslog");
 		}
 	}
 	
@@ -78,8 +99,35 @@ public class ShortUrlService {
 		return null;
 	}
 	
-	public void writeClickLog(ShortUrlModel model){
+	public void writeClickLog(final ShortUrlModel model){
+		workerPool.execute(new Runnable(){
+			public void run(){
+				writeClickLogWithApi(model);
+			}
+		});
+	}
+	
+	private void writeClickLogWithApi(ShortUrlModel model){
+		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("short_key", model.shortKey);
+		param.put("uid", model.uid);
+		param.put("ip_addr", model.ip);
+		param.put("agent", model.agent);
+		param.put("refer", model.refer);
 		
+		HTTPResult r = api.call("tool_short_url_click", param);
+		
+		ShortUrlModel m = new ShortUrlModel();
+		String msg = String.format("%s %s %s [%s] %s", model.shortKey, model.uid, model.ip,
+				model.agent, model.refer);
+		if(accesslog != null){
+			accesslog.debug(msg);
+		}else {
+			log.debug(msg);
+		}
+		if(!r.isOK){
+			log.warn("click log write error, short:" + model.clickId + ", msg:" + r.errorMsg);
+		}
 	}
 	
 	public long newUserId(){
