@@ -24,6 +24,9 @@ public class ShortUrlService {
 	private CacheApi cache = new SimpleCacheApi();
 	private static ShortUrlService ins = null;
 	
+	private long nextUID = 0;
+	private int MODE = 10000;
+	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
 			ins = new ShortUrlService();
@@ -38,7 +41,7 @@ public class ShortUrlService {
 	protected void start(){
 		String appKey = Settings.getString(Settings.TAODIAN_APPID, null); // System.getProperty("");
 		String appSecret = Settings.getString(Settings.TAODIAN_APPSECRET, null);
-		String appRoute = Settings.getString(Settings.TAODIAN_APPROUTE, null);
+		String appRoute = Settings.getString(Settings.TAODIAN_APPROUTE, "http://api.zaol.cn/api/route");
 		
 		if(appKey != null && appSecret != null){
 			api = new TaodianApi(appKey, appSecret, appRoute);		
@@ -73,6 +76,16 @@ public class ShortUrlService {
 			return (ShortUrlModel)tmp;
 		}
 		return null;
+	}
+	
+	public void writeClickLog(ShortUrlModel model){
+		
+	}
+	
+	public long newUserId(){
+		nextUID = (nextUID + 1) % MODE;
+		
+		return (System.currentTimeMillis() % (MODE * 1000)) * MODE + nextUID; 
 	}
 	
 

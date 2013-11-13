@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.ServletConfig;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -18,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.taodian.api.TaodianApi;
 import com.taodian.click.ShortUrlModel;
 import com.taodian.click.ShortUrlService;
 import com.taodian.click.monitor.Benchmark;
@@ -33,9 +35,12 @@ import com.taodian.click.monitor.Benchmark;
 public class ShortUrlServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	
+	protected static final String EMOP_COOKIES = "emop_click_uid";
 	protected ShortUrlService service = null;
 	protected String templates = "";
-	protected Log log = LogFactory.getLog("click.gate.servlet");    	
+	protected Log log = LogFactory.getLog("click.gate.servlet");
+	
+	protected String secret = "不要问这个用来干什么，这是一个秘密。";
 	
 	public void init(ServletConfig config){
 		service = ShortUrlService.getInstance();
@@ -71,7 +76,7 @@ public class ShortUrlServlet extends HttpServlet {
 			 */
 			if(model != null){
 				model = model.copy();
-				trackClickInfo(model, req);
+				trackClickInfo(model, req, response);
 
 				Map<String, String> param = createSubmitForm(model, req);
 				outputSubmitForm(param, response);
@@ -81,7 +86,7 @@ public class ShortUrlServlet extends HttpServlet {
 			}else {
 				model = new ShortUrlModel();
 				model.shortKey = key;
-				trackClickInfo(model, req);
+				trackClickInfo(model, req, response);
 				
 				mark.attachObject(key);
 				mark.done(Benchmark.SHORT_KEY_NOT_FOUND, 0);
@@ -104,10 +109,14 @@ public class ShortUrlServlet extends HttpServlet {
 			Benchmark mark = Benchmark.start(Benchmark.SHORT_KEY_POST);
 			ShortUrlModel model = service.getShortUrlInfo(key, false);
 			if(model != null){
+				model = model.copy();
+				trackClickInfo(model, req, response);
+				
 				mark.attachObject(model);
 				NextURL n = postShortCheck(model, req);
 				if(n.isOK){
-					mark.done();
+					service.writeClickLog(model);
+					mark.done();				
 				}else {
 					mark.done(Benchmark.SHORT_KEY_POST_CHECK_ERROR, 0);
 				}
@@ -127,17 +136,95 @@ public class ShortUrlServlet extends HttpServlet {
 			response.setContentType("text/plain");
 			response.getWriter().println("欢迎使用冒泡短网址系统。");
 		}
-		//response.encodeRedirectUrl(arg0)
 	}
 	
-	//protected void 
-
-	protected void trackClickInfo(ShortUrlModel m, HttpServletRequest req){
+	/**
+	 * 更新用户信息：
+	 * 1. User_agent
+	 * 2. Referer 
+	 * 3. IP
+	 * 4. UID
+	 */
+	protected void trackClickInfo(ShortUrlModel m, HttpServletRequest req, HttpServletResponse response){
+		m.agent = req.getHeader("HTTP_USER_AGENT");
+		m.refer = req.getHeader("HTTP_REFERER");
+		m.ip = req.getHeader("HTTP_X_REAL_IP");
 		
+		m.agent = m.agent == null ? "" : m.agent;
+		m.refer = m.refer == null ? "" : m.refer;
+		m.uid = null;
+		if(m.ip == null){
+			m.ip = req.getHeader("HTTP_X_FORWARDED_FOR");
+			if(m.ip != null && m.ip.indexOf(',') > 0){
+				m.ip = m.ip.split(",")[0];
+			}
+		}
+		if(m.ip == null){
+			m.ip = req.getHeader("REMOTE_ADDR");
+		}
+		if(m.ip == null){
+			m.ip = req.getHeader("HTTP_CLIENT_IP");			
+		}
+		if(m.ip == null){
+			m.ip = "127.0.0.1";
+		}
+		
+		for(Cookie c: req.getCookies()){
+			if(c.getName().equals(EMOP_COOKIES)){
+				m.uid = c.getValue();
+			}
+		}
+		if(m.uid == null){
+			Cookie c = new Cookie(EMOP_COOKIES, service.newUserId() + "");
+			String host = req.getServerName();
+			if(host.endsWith(".cn") || host.endsWith(".com")){
+				String[] l = host.split("\\.");
+				host = l[l.length - 2] + "." + l[l.length - 1];
+			}
+			c.setDomain(host);
+			c.setPath("/");
+			c.setMaxAge(10 * 365 * 24 * 60 * 60);
+			
+			m.uid = c.getValue();
+			response.addCookie(c);
+		}		
 	}
 	
 	protected NextURL postShortCheck(ShortUrlModel model, HttpServletRequest req){
-		return null;
+		NextURL next = new NextURL();
+		next.isOK = false;
+		
+		long c = 0;
+		String clickTime = req.getParameter("click_time") + "";
+		if(clickTime != null){
+			try{
+				c = Long.parseLong(clickTime);
+			}catch(Exception e){}
+		}
+		c = System.currentTimeMillis() - c;
+		
+		if(c > 0 && c < 10 * 1000){
+			String ref = secret + model.shortKey + "," + req.getParameter("user_id") + "," + req.getParameter("refer") + "," + clickTime;
+			String hash = TaodianApi.MD5(ref);
+			
+			String code = req.getParameter("code");
+			
+			if(code != null && hash != null && hash.equals(code)){
+				next.isOK = true;
+				model.refer = req.getParameter("refer");
+			}
+		}
+		
+		next.url = "/";
+		if(next.isOK){
+			if(isMobile(req) && model.mobileLongUrl != null && model.mobileLongUrl.startsWith("http://")){
+				next.url = model.mobileLongUrl;
+			}else {
+				next.url = model.longUrl;
+			}	
+		}
+		
+		return next;
 	}
 	
 	/**
@@ -145,8 +232,25 @@ public class ShortUrlServlet extends HttpServlet {
 	protected Map<String, String> createSubmitForm(ShortUrlModel model, HttpServletRequest req){
 		Map<String, String> p = new HashMap<String, String>();
 		
-		p.put("debug", req.getParameter("debug"));
+		String clickTime = System.currentTimeMillis() + "";
 		
+		p.put("debug", req.getParameter("debug"));
+		p.put("click_time", clickTime);
+		p.put("user_id", model.uid);
+		p.put("refer", model.refer);
+		p.put("short_key", model.shortKey);
+		p.put("auto_mobile", req.getParameter("auto_mobile"));		
+		
+		String ref = secret + model.shortKey + "," + model.uid + "," + model.refer + "," + clickTime;
+	 	String hash = TaodianApi.MD5(ref);
+
+	 	int i = (int)(Math.random() * 32) % 32;
+	 	String header = hash.substring(0, i);
+	 	String tail = hash.substring(i);
+	 	
+		p.put("index_key", (i * 32 + i) + "");
+		p.put("code", header + hash + tail);
+	 	
 		return p;
 	}
 	
@@ -158,7 +262,10 @@ public class ShortUrlServlet extends HttpServlet {
 		String t = templates;
     	
     	for(Entry<String, String> entry: param.entrySet()){
-    		t  = t .replaceAll("\\$\\{" + entry.getKey() + "\\}", entry.getValue());
+    		if(log.isDebugEnabled()){
+    		//	log.info("replace:" + entry.getKey() + "-->" + entry.getValue());
+    		}
+    		t  = t .replaceAll("\\$\\{" + entry.getKey() + "\\}", entry.getValue() + "");
     	}
 		
     	String d = param.get("debug");
@@ -170,16 +277,12 @@ public class ShortUrlServlet extends HttpServlet {
     	response.getWriter().print(t);
 	}
 	
-	protected boolean isMobile(){
+	protected boolean isMobile(HttpServletRequest req){
 		return false;
 	}
 	
-	protected void writeClickLog(){
-		
-	}
-	
 	private String getUrlKey(HttpServletRequest req){
-        Pattern pa = Pattern.compile("(c|t|)/([^\\.]+)");
+        Pattern pa = Pattern.compile("(c|t)/([^\\./\\s]+)");
         Matcher ma = pa.matcher(req.getRequestURI());
         if(ma.find()){
         	String key = ma.group(2);
@@ -187,6 +290,7 @@ public class ShortUrlServlet extends HttpServlet {
 				key = URLDecoder.decode(key, "UTF8");
 			} catch (UnsupportedEncodingException e) {
 			}
+			
         	return key;
         }
 		

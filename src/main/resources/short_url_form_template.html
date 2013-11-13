@@ -3,17 +3,16 @@
     <head>
     </head>
 	<body>
-		<!-- retry:{$retry_try} -->
-		<form id="sub" name="sub" action='http://wap.emop.cn/c/{$this->short_key}/?' method='POST'>
-<input name='p1' value='{$p1}' type='hidden' /><input name='p2' value='{$p2}' type='hidden' />
-<input name='p3' value='{$p3}' type='hidden' />
-<input name='auto_mobile' value='{$_REQUEST['auto_mobile']}' type='hidden' />
+		<form id="sub" name="sub" action='http://wap.emop.cn/c/${short_key}/?' method='POST'>
+<input name='refer' value='${refer}' type='hidden' /><input name='user_id' value='${user_id}' type='hidden' />
+<input name='click_time' value='${click_time}' type='hidden' />
+<input name='auto_mobile' value='${auto_mobile}' type='hidden' />
 <input id='code' name='check_code' value='' type='hidden' />
 		</form>
 		<script type="text/javascript">
-			var key = '{$this->secret_key}';
-			var index_key = {$this->index_key} % 28;
-			var code = key.substring(index_key, index_key+4);
+			var key = '${code}';
+			var index_key = ${index_key} % 32;
+			var code = key.substring(index_key, index_key+32);
 			e = document.getElementById("code");
 			e.value = code;
 			document.getElementById("sub").submit();
