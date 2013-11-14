@@ -298,6 +298,18 @@ public class ShortUrlServlet extends HttpServlet {
 	}
 	
 	protected boolean isMobile(HttpServletRequest req){
+		String agent = req.getHeader("User-Agent");
+
+        Pattern pa = Pattern.compile("(android|ios|ipad|iphone)", Pattern.CASE_INSENSITIVE);
+        Matcher ma = pa.matcher(agent);
+        if(ma.find()){
+        	return true;
+        }
+        String q = req.getParameter("mobile");
+        if(q != null && q.equals("y")){
+        	return true;
+        }
+        
 		return false;
 	}
 	
