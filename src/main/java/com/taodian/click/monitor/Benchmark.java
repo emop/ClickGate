@@ -52,6 +52,7 @@ public class Benchmark {
 	}
 	
 	public void done(String type, long value){
+		this.type = type;
 		if(value > 0){
 			elapsed = value;
 		}else {

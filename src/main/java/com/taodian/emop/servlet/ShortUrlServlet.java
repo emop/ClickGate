@@ -92,7 +92,7 @@ public class ShortUrlServlet extends HttpServlet {
 				model.shortKey = key;
 				trackClickInfo(model, req, response);
 				
-				mark.attachObject(key);
+				mark.attachObject(model);
 				mark.done(Benchmark.SHORT_KEY_NOT_FOUND, 0);
 				
 				response.setContentType("text/plain");
@@ -231,9 +231,10 @@ public class ShortUrlServlet extends HttpServlet {
 			}
 		}
 		
+		model.isMobile = isMobile(req);
 		next.url = "/";
 		if(next.isOK){
-			if(isMobile(req) && model.mobileLongUrl != null && model.mobileLongUrl.startsWith("http://")){
+			if(model.isMobile && model.mobileLongUrl != null && model.mobileLongUrl.startsWith("http://")){
 				next.url = model.mobileLongUrl;
 			}else {
 				next.url = model.longUrl;

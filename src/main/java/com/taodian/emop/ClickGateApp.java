@@ -13,8 +13,10 @@ import org.mortbay.jetty.Server;
 import org.mortbay.jetty.servlet.ServletHandler;
 
 import com.taodian.click.ShortUrlService;
+import com.taodian.click.monitor.StatusMonitor;
 import com.taodian.emop.servlet.IndexServlet;
 import com.taodian.emop.servlet.ShortUrlServlet;
+import com.taodian.emop.servlet.StatusServlet;
 
 
 /**
@@ -30,6 +32,8 @@ public class ClickGateApp
     	startCleanLog("short_url");
     	
     	ShortUrlService.getInstance();
+    	StatusMonitor.startMonitor();
+    	com.taodian.api.monitor.StatusMonitor.startMonitor();
     	
     	Log log = LogFactory.getLog("click.gate");    	
     	
@@ -42,6 +46,8 @@ public class ClickGateApp
         server.setHandler(context);
  
         context.addServletWithMapping(ShortUrlServlet.class, "/c/*");
+        context.addServletWithMapping(StatusServlet.class, "/status");
+
         context.addServletWithMapping(IndexServlet.class, "/*");
  
         server.start();

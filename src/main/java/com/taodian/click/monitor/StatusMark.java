@@ -7,11 +7,13 @@ public class StatusMark {
 	public long minElapsed = 0;
 
 	public SortedQueue slowList = new SortedQueue(10);
+	public MaxSizeQueue lastList = new MaxSizeQueue(10);
 	public Benchmark last = null;
 	
 	public void markRequest(Benchmark mark){
 		requestCount++;
-		slowList.add(mark);	
+		slowList.add(mark);
+		lastList.add(mark);
 		if(averageElapsed > 0){
 			averageElapsed = (averageElapsed + mark.elapsed)  / 2;
 		}else {

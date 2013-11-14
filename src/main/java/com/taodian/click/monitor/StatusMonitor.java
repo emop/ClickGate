@@ -7,17 +7,19 @@ import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import com.taodian.click.monitor.marks.HTTPRequest;
-import com.taodian.click.monitor.marks.PendingRequest;
-import com.taodian.click.monitor.marks.WeixinRequest;
 
 public class StatusMonitor {
 	public static StatusMonitor monitor = null;	
 	protected ArrayBlockingQueue<Benchmark> marks = new ArrayBlockingQueue<Benchmark>(1024 * 5);
 	protected Timer timer = new Timer();
 	
-	public WeixinRequest weixin = new WeixinRequest();
-	public HTTPRequest http = new HTTPRequest();
-	public PendingRequest pending = new PendingRequest();
+	//public WeixinRequest weixin = new WeixinRequest();
+	public HTTPRequest post = new HTTPRequest();
+	public HTTPRequest get = new HTTPRequest();
+
+	public HTTPRequest notfound = new HTTPRequest();
+	
+	//public PendingRequest pending = new PendingRequest();
 
 	public Date uptime = null;
 
@@ -60,6 +62,15 @@ public class StatusMonitor {
 	public void markAllItem(){
 		if(marks.size() == 0) return;
 		
+		for(Benchmark m = marks.poll(); m != null; m = marks.poll()){
+			if(m.type.equals(Benchmark.SHORT_KEY_GET)){
+				get.markRequest(m);
+			}else if(m.type.equals(Benchmark.SHORT_KEY_POST)){
+				post.markRequest(m);
+			}else if(m.type.equals(Benchmark.SHORT_KEY_NOT_FOUND)){
+				notfound.markRequest(m);
+			}
+		}
 
 	}
 }

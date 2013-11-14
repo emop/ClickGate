@@ -102,6 +102,7 @@ public class ShortUrlModel implements Serializable, Cloneable{
 	
 	public String shortKeySource = null;
 	
+	public boolean isMobile=false;
 	
 	/**
 	 * 长地址
