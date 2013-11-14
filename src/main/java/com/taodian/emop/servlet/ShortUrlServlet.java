@@ -159,6 +159,7 @@ public class ShortUrlServlet extends HttpServlet {
 		}
 		*/
 		
+		m.isMobile = isMobile(req);
 		m.agent = req.getHeader("User-Agent");
 		m.refer = req.getHeader("Referer");
 		m.ip = req.getHeader("HTTP_X_REAL_IP");
