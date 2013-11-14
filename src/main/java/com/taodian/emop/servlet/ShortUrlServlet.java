@@ -152,13 +152,11 @@ public class ShortUrlServlet extends HttpServlet {
 	 */
 	protected void trackClickInfo(ShortUrlModel m, HttpServletRequest req, HttpServletResponse response){
 		
-		/*
 		Enumeration e = req.getHeaderNames();
 		for(;e.hasMoreElements(); ){
 			String n = e.nextElement() + "";
 			log.debug(n + " -->" + req.getHeader(n));
 		}
-		*/
 		
 		m.agent = req.getHeader("User-Agent");
 		m.refer = req.getHeader("Http_Referer");
