@@ -183,9 +183,11 @@ public class ShortUrlServlet extends HttpServlet {
 			m.ip = req.getRemoteHost();
 		}
 		
-		for(Cookie c: req.getCookies()){
-			if(c.getName().equals(EMOP_COOKIES)){
-				m.uid = c.getValue();
+		if(req.getCookies() != null){
+			for(Cookie c: req.getCookies()){
+				if(c.getName().equals(EMOP_COOKIES)){
+					m.uid = c.getValue();
+				}
 			}
 		}
 		if(m.uid == null){
