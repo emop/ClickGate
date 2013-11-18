@@ -11,6 +11,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.taodian.api.TaodianApi;
 import com.taodian.emop.Settings;
+import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
 import com.taodian.emop.utils.CacheApi;
 import com.taodian.emop.utils.SimpleCacheApi;
@@ -25,6 +26,12 @@ public class ShortUrlService {
 	private Log accesslog = null;
 
 	private TaodianApi api = null;
+	
+	/**
+	 * 兼容，老得冒泡点击统计。
+	 */
+	private HTTPClient http = null;
+	
 	private CacheApi cache = new SimpleCacheApi();
 	private static ShortUrlService ins = null;
 	
@@ -70,6 +77,8 @@ public class ShortUrlService {
 		if(Settings.getString(Settings.WRITE_ACCESS_LOG, "y").equals("y")){
 			accesslog = LogFactory.getLog("click.accesslog");
 		}
+		
+		http = HTTPClient.create();
 	}
 	
 	public ShortUrlModel getShortUrlInfo(String shortKey, boolean noCache){
@@ -127,6 +136,14 @@ public class ShortUrlService {
 		}
 		if(!r.isOK){
 			log.warn("click log write error, short:" + model.clickId + ", msg:" + r.errorMsg);
+		}
+		
+		if(Settings.getInt("old_emop_click", 0) == 1){
+			String click = String.format("http://emop.sinaapp.com/UrlStat/stat/%s/%s/?uid=y", model.shortKey, model.uid);
+			HTTPResult resp = http.post(click, null, "text");	
+			if(log.isDebugEnabled()){
+				log.debug("old emop:" + click + ", resp:" + resp.text);
+			}
 		}
 	}
 	
