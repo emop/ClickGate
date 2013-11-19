@@ -109,11 +109,15 @@ public class ShortUrlService {
 	}
 	
 	public void writeClickLog(final ShortUrlModel model){
-		workerPool.execute(new Runnable(){
-			public void run(){
-				writeClickLogWithApi(model);
-			}
-		});
+		try{
+			workerPool.execute(new Runnable(){
+				public void run(){
+					writeClickLogWithApi(model);
+				}
+			});
+		}catch(Exception e){
+			log.error("Log write thread pool is full", e);
+		}
 	}
 	
 	private void writeClickLogWithApi(ShortUrlModel model){
