@@ -35,13 +35,17 @@ public class SimpleCacheApi implements CacheApi {
 
 		if (System.currentTimeMillis() - lastCleanUp > 1000 * 30) {
 			lastCleanUp = System.currentTimeMillis();
-			if(l.tryLock()){
-				try{
-					cleanObject();
-				}finally{
-					l.unlock();
+			new Thread(){
+				public void run(){
+					if(l.tryLock()){
+						try{
+							cleanObject();
+						}finally{
+							l.unlock();
+						}
+					}
 				}
-			}
+			}.start();
 		}
 
 		CacheItem item = cache.get(key);

@@ -176,5 +176,9 @@ public class ShortUrlService {
 		return (System.currentTimeMillis() % (MODE * 1000)) * MODE + nextUID; 
 	}
 	
+	public Map<String, Object> cacheStat(){
+		return cache.stat();
+	}
+	
 
 }
