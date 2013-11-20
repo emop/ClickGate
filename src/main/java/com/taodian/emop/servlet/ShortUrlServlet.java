@@ -219,7 +219,7 @@ public class ShortUrlServlet extends HttpServlet {
 		}
 		c = System.currentTimeMillis() - c;
 		
-		if(c > 0 && c < 10 * 1000){
+		if(c > 0 && c < 120 * 1000){
 			String ref = secret + model.shortKey + "," + req.getParameter("user_id") + "," + req.getParameter("refer") + "," + clickTime;
 			String hash = TaodianApi.MD5(ref);
 			
