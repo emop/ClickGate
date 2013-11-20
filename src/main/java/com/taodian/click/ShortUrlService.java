@@ -99,16 +99,30 @@ public class ShortUrlService {
 			param.put("short_key", shortKey);
 			param.put("auto_mobile", "y");
 			
-			HTTPResult r = api.call("tool_convert_long_url", param);
-			
-			ShortUrlModel m = new ShortUrlModel();
-			if(r.isOK){
-				m.shortKey = shortKey;
-				m.longUrl = r.getString("data.long_url");
-				m.mobileLongUrl = r.getString("data.mobile_long_url");
-				cache.set(shortKey, m, 5 * 60);
+			String errorMsg = "";
+			for(int i = 0; i < 3; i++){
+				HTTPResult r = api.call("tool_convert_long_url", param);
 				
-				tmp = m;
+				ShortUrlModel m = new ShortUrlModel();
+				if(r.isOK){
+					if(i > 0){
+						log.warn(String.format("The short url '%s' is get with retry %s times", shortKey, i));
+					}
+					m.shortKey = shortKey;
+					m.longUrl = r.getString("data.long_url");
+					m.mobileLongUrl = r.getString("data.mobile_long_url");
+					cache.set(shortKey, m, 5 * 60);
+					
+					tmp = m;
+					break;
+				}
+				errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
+				try{
+					Thread.sleep(1000);
+				}catch(Exception e){}
+			}
+			if(tmp == null){
+				log.error(String.format("The short url '%s' is not found, error:%s", shortKey, errorMsg));				
 			}
 		}
 		
