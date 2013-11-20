@@ -77,7 +77,7 @@ public class ShortUrlService {
 				);
 		
 		syncPool = new ThreadPoolExecutor(
-				10,
+				15,
 				writeLogThread * 2,
 				10, 
 				TimeUnit.SECONDS, 
@@ -129,8 +129,8 @@ public class ShortUrlService {
 			log.error("Log write thread pool is full", e);
 		}
 		
-		try{
-			if(Settings.getInt("old_emop_click", 0) == 1){
+		if(Settings.getInt("old_emop_click", 0) == 1){
+			if(syncPool.getQueue().remainingCapacity() > 1){
 				syncPool.execute(new Runnable(){
 					public void run(){
 							String click = String.format("http://emop.sinaapp.com/UrlStat/stat/%s/%s/?uid=y", model.shortKey, model.uid);
@@ -140,10 +140,10 @@ public class ShortUrlService {
 							}
 						}
 				});	
+			}else {
+				log.warn("Log old click sync pool is full");
 			}
-		}catch(Exception e){
-			log.error("Log old click sync pool is full", e);
-		}		
+		}
 	}
 	
 	private void writeClickLogWithApi(ShortUrlModel model){
