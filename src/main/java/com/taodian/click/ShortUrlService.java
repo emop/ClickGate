@@ -122,7 +122,7 @@ public class ShortUrlService {
 				}
 				errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
 				try{
-					Thread.sleep(1000);
+					Thread.sleep(1000 * (i + 1));
 				}catch(Exception e){}
 			}
 			if(tmp == null){
