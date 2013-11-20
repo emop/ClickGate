@@ -125,7 +125,11 @@ public class ShortUrlService {
 					writeClickLogWithApi(model);
 				}
 			});
-			
+		}catch(Exception e){
+			log.error("Log write thread pool is full", e);
+		}
+		
+		try{
 			if(Settings.getInt("old_emop_click", 0) == 1){
 				syncPool.execute(new Runnable(){
 					public void run(){
@@ -134,12 +138,12 @@ public class ShortUrlService {
 							if(log.isDebugEnabled()){
 								log.debug("old emop:" + click + ", resp:" + resp.text);
 							}
-						}					
+						}
 				});	
 			}
 		}catch(Exception e){
-			log.error("Log write thread pool is full", e);
-		}
+			log.error("Log old click sync pool is full", e);
+		}		
 	}
 	
 	private void writeClickLogWithApi(ShortUrlModel model){
