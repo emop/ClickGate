@@ -29,7 +29,7 @@ public class Settings {
 
 	public static final String TAOKE_SOURCE_DOMAIN = "taoke_source_domain";
 
-	
+	public static final String CACHE_URL_TIMEOUT = "cache_url_timeout";
 
 	
 	private static Log log = LogFactory.getLog("click.settings");

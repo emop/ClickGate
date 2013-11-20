@@ -36,6 +36,7 @@ public class ShortUrlService {
 	private static ShortUrlService ins = null;
 	
 	private long nextUID = 0;
+	private int urlCacheTime = 0;
 	private int MODE = 10000;
 	protected ThreadPoolExecutor workerPool = null;
 	protected ThreadPoolExecutor syncPool = null;
@@ -88,6 +89,9 @@ public class ShortUrlService {
 			accesslog = LogFactory.getLog("click.accesslog");
 		}
 		
+		urlCacheTime = Settings.getInt(Settings.CACHE_URL_TIMEOUT, 60);
+
+		
 		http = HTTPClient.create();
 	}
 	
@@ -111,7 +115,7 @@ public class ShortUrlService {
 					m.shortKey = shortKey;
 					m.longUrl = r.getString("data.long_url");
 					m.mobileLongUrl = r.getString("data.mobile_long_url");
-					cache.set(shortKey, m, 5 * 60);
+					cache.set(shortKey, m, urlCacheTime * 60);
 					
 					tmp = m;
 					break;
