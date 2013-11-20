@@ -38,6 +38,8 @@ public class ShortUrlService {
 	private long nextUID = 0;
 	private int MODE = 10000;
 	protected ThreadPoolExecutor workerPool = null;
+	protected ThreadPoolExecutor syncPool = null;
+
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -73,6 +75,14 @@ public class ShortUrlService {
 				TimeUnit.SECONDS, 
 				new LinkedBlockingDeque<Runnable>(queueSize)
 				);
+		
+		syncPool = new ThreadPoolExecutor(
+				10,
+				writeLogThread * 2,
+				10, 
+				TimeUnit.SECONDS, 
+				new LinkedBlockingDeque<Runnable>(50)
+				);		
 		
 		if(Settings.getString(Settings.WRITE_ACCESS_LOG, "y").equals("y")){
 			accesslog = LogFactory.getLog("click.accesslog");
@@ -115,6 +125,18 @@ public class ShortUrlService {
 					writeClickLogWithApi(model);
 				}
 			});
+			
+			if(Settings.getInt("old_emop_click", 0) == 1){
+				syncPool.execute(new Runnable(){
+					public void run(){
+							String click = String.format("http://emop.sinaapp.com/UrlStat/stat/%s/%s/?uid=y", model.shortKey, model.uid);
+							HTTPResult resp = http.post(click, null, "text");	
+							if(log.isDebugEnabled()){
+								log.debug("old emop:" + click + ", resp:" + resp.text);
+							}
+						}					
+				});	
+			}
 		}catch(Exception e){
 			log.error("Log write thread pool is full", e);
 		}
@@ -141,14 +163,7 @@ public class ShortUrlService {
 		if(!r.isOK){
 			log.warn("click log write error, short:" + model.clickId + ", msg:" + r.errorMsg);
 		}
-		
-		if(Settings.getInt("old_emop_click", 0) == 1){
-			String click = String.format("http://emop.sinaapp.com/UrlStat/stat/%s/%s/?uid=y", model.shortKey, model.uid);
-			HTTPResult resp = http.post(click, null, "text");	
-			if(log.isDebugEnabled()){
-				log.debug("old emop:" + click + ", resp:" + resp.text);
-			}
-		}
+
 	}
 	
 	public long newUserId(){

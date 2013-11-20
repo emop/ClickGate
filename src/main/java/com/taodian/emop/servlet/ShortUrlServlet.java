@@ -302,7 +302,9 @@ public class ShortUrlServlet extends HttpServlet {
 	
 	protected boolean isMobile(HttpServletRequest req){
 		String agent = req.getHeader("User-Agent");
-
+		
+		if(agent == null) return false;
+		
         Pattern pa = Pattern.compile("(android|ios|ipad|iphone)", Pattern.CASE_INSENSITIVE);
         Matcher ma = pa.matcher(agent);
         if(ma.find()){
@@ -317,7 +319,7 @@ public class ShortUrlServlet extends HttpServlet {
 	}
 	
 	private String getUrlKey(HttpServletRequest req){
-        Pattern pa = Pattern.compile("(c|t)/([^\\./\\s]+)");
+        Pattern pa = Pattern.compile("(c|t)/([a-zA-Z0-9]+)");
         Matcher ma = pa.matcher(req.getRequestURI());
         if(ma.find()){
         	String key = ma.group(2);
