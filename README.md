@@ -47,6 +47,7 @@ click.zaol.cn -- 阿里云和聚石塔的DNS轮询。
 *  write_access_log -- 是否写访问日志本地文件。 默认:y, 可选值:(y|n)
 *  taoke_source_domain -- 淘客访问跳转域名。默认:www.emop.cn
 *  old_emop_click -- 同步点击到老的冒泡统计流程。默认：0不开启。可选值(0|1)
+*  default_http_index -- 首页跳转地址，直接访问短网址首页时跳转的地址。
 
 本地编译和运行
 ===========
