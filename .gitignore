@@ -8,3 +8,5 @@
 short_url.conf
 target
 logs
+
+local_short_url.conf
