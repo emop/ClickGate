@@ -10,6 +10,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.taodian.api.TaodianApi;
+import com.taodian.click.monitor.StatusMonitor;
 import com.taodian.emop.Settings;
 import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
@@ -45,6 +46,10 @@ public class ShortUrlService {
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
 			ins = new ShortUrlService();
+			Settings.loadSettings();
+	    	StatusMonitor.startMonitor();
+	    	com.taodian.api.monitor.StatusMonitor.startMonitor();
+
 			ins.start();
 		}
 		return ins;
@@ -57,9 +62,10 @@ public class ShortUrlService {
 		String appKey = Settings.getString(Settings.TAODIAN_APPID, null); // System.getProperty("");
 		String appSecret = Settings.getString(Settings.TAODIAN_APPSECRET, null);
 		String appRoute = Settings.getString(Settings.TAODIAN_APPROUTE, "http://api.zaol.cn/api/route");
+		boolean inSAE = Settings.getString("in_sae", "n").equals("y");
 		
 		if(appKey != null && appSecret != null){
-			api = new TaodianApi(appKey, appSecret, appRoute);		
+			api = new TaodianApi(appKey, appSecret, appRoute, inSAE ? "simple" : "apache");		
 		}else {
 			log.info("The taodian.api_id and taodian.api_secret Java properties are required.");
 			System.exit(255);
@@ -92,7 +98,7 @@ public class ShortUrlService {
 		urlCacheTime = Settings.getInt(Settings.CACHE_URL_TIMEOUT, 60);
 
 		
-		http = HTTPClient.create();
+		http = HTTPClient.create(inSAE ? "simple" : "apache");
 	}
 	
 	public ShortUrlModel getShortUrlInfo(String shortKey, boolean noCache){
@@ -152,7 +158,7 @@ public class ShortUrlService {
 				syncPool.execute(new Runnable(){
 					public void run(){
 							String click = String.format("http://emop.sinaapp.com/UrlStat/stat/%s/%s/?uid=y", model.shortKey, model.uid);
-							HTTPResult resp = http.post(click, null, "text");	
+							HTTPResult resp = http.post(click, new HashMap<String, Object>(), "text");	
 							if(log.isDebugEnabled()){
 								log.debug("old emop:" + click + ", resp:" + resp.text);
 							}

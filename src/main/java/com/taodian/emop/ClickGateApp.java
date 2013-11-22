@@ -32,8 +32,6 @@ public class ClickGateApp
     	startCleanLog("short_url");
     	
     	ShortUrlService.getInstance();
-    	StatusMonitor.startMonitor();
-    	com.taodian.api.monitor.StatusMonitor.startMonitor();
     	
     	Log log = LogFactory.getLog("click.gate");    	
     	

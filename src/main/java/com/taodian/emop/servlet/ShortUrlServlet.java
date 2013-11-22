@@ -193,12 +193,16 @@ public class ShortUrlServlet extends HttpServlet {
 		if(m.uid == null){
 			Cookie c = new Cookie(EMOP_COOKIES, service.newUserId() + "");
 			String host = req.getServerName();
+			/*
 			if(host.endsWith(".cn") || host.endsWith(".com")){
 				String[] l = host.split("\\.");
 				host = l[l.length - 2] + "." + l[l.length - 1];
 			}
+			*/
 			c.setDomain(host);
-			c.setPath("/");
+			if(Settings.getString("in_sae", "n").equals("n")){
+				c.setPath("/");
+			}
 			c.setMaxAge(10 * 365 * 24 * 60 * 60);
 			
 			m.uid = c.getValue();

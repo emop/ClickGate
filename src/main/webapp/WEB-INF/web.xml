@@ -23,11 +23,7 @@
   <display-name>EMOP short url</display-name>
   <description>
      EMOP short url
-  </description>
-  <servlet>
-	   <load-on-startup>1</load-on-startup>       
-  </servlet>
-  
+  </description>  
   <servlet>
        <servlet-name>ShortUrlServlet</servlet-name>
        <servlet-class>com.taodian.emop.servlet.ShortUrlServlet</servlet-class>
