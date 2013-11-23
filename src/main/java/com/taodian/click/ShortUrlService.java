@@ -189,7 +189,7 @@ public class ShortUrlService {
 			log.debug(msg);
 		}
 		if(!r.isOK){
-			log.warn("click log write error, short:" + model.clickId + ", msg:" + r.errorMsg);
+			log.warn("click log write error, short:" + model.shortKey + ", msg:" + r.errorMsg);
 		}
 
 	}

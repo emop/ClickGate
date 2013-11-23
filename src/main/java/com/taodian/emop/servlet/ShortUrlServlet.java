@@ -233,8 +233,10 @@ public class ShortUrlServlet extends HttpServlet {
 				next.isOK = true;
 				model.refer = req.getParameter("refer");
 			}else {
-				log.debug(String.format("hash:%s != %s, ref:%s", code, hash, ref));
+				log.warn(String.format("hash:%s != %s, ref:%s", code, hash, ref));
 			}
+		}else {
+			log.warn(String.format("the second submit time is delay so far, ms:" + c));			
 		}
 		
 		model.isMobile = isMobile(req);
