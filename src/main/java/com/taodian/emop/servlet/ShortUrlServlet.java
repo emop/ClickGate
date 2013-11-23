@@ -224,7 +224,7 @@ public class ShortUrlServlet extends HttpServlet {
 		c = System.currentTimeMillis() - c;
 		
 		if(c > 0 && c < 120 * 1000){
-			String ref = secret + model.shortKey + "," + req.getParameter("user_id") + "," + req.getParameter("refer") + "," + clickTime;
+			String ref = secret + model.shortKey + "," + req.getParameter("user_id") + "," +  clickTime;
 			String hash = TaodianApi.MD5(ref);
 			
 			String code = req.getParameter("check_code");
@@ -267,7 +267,7 @@ public class ShortUrlServlet extends HttpServlet {
 		p.put("auto_mobile", req.getParameter("auto_mobile"));	
 		p.put("source_domain", Settings.getString(Settings.TAOKE_SOURCE_DOMAIN, "wap.emop.cn"));
 		
-		String ref = secret + model.shortKey + "," + model.uid + "," + model.refer + "," + clickTime;
+		String ref = secret + model.shortKey + "," + model.uid + "," + clickTime;
 		
 		//log.debug(String.format("hash ref:%s", ref));
 
