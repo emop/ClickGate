@@ -200,7 +200,7 @@ public class ShortUrlServlet extends HttpServlet {
 			}
 			*/
 			c.setDomain(host);
-			if(Settings.getString("in_sae", "n").equals("n")){
+			if(!Settings.getString("in_sae", "n").equals("y")){
 				c.setPath("/");
 			}
 			c.setMaxAge(10 * 365 * 24 * 60 * 60);

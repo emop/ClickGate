@@ -59,3 +59,17 @@ click.zaol.cn -- 阿里云和聚石塔的DNS轮询。
 #mvn mvn assembly:assembly  -- 编译一个完整的Jar包
 #java -jar traget\ClickGate-1.0-SNAPSHOT.jar  --运行
 ```
+
+
+编译为WAR包，放到SAE中运行
+======================
+*  在本地创建一个`local_short_url.conf` 配置文件，里面保存需要配置的参数。
+*  修改POM.xml 里面的 `<scope>provided</scope>` 注释去掉
+*  使用mvn打包一个war文件。
+
+```
+
+#mvn compile war:war  -- 编译一个完整的War包
+```
+
+
