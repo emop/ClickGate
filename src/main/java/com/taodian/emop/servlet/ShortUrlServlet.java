@@ -78,7 +78,7 @@ public class ShortUrlServlet extends HttpServlet {
 			/**
 			 * 做一个clone，因为记录点击状态的时候。需要加入本次的点击信息。多个点击之间会出现冲突。
 			 */
-			if(model != null){
+			if(model != null && model.longUrl != null && model.longUrl.length() > 5){
 				model = model.copy();
 				trackClickInfo(model, req, response);
 
@@ -246,7 +246,8 @@ public class ShortUrlServlet extends HttpServlet {
 				next.url = model.mobileLongUrl;
 			}else {
 				next.url = model.longUrl;
-			}	
+			}
+			next.isOK = next.url != null && next.url.startsWith("http:");
 		}
 		
 		return next;
