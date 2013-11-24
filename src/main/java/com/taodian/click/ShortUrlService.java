@@ -39,9 +39,22 @@ public class ShortUrlService {
 	private long nextUID = 0;
 	private int urlCacheTime = 0;
 	private int MODE = 10000;
+	/**
+	 * 写点击统计日志的线程池。
+	 */
 	protected ThreadPoolExecutor workerPool = null;
+	/**
+	 * 同步老得冒泡统计的线程池。这个响应速度有点慢。
+	 */
 	protected ThreadPoolExecutor syncPool = null;
+	/**
+	 * 查询短网址的线程池，把从API查询长连接，放到独立的线程去做。避免HTTP 线程被阻塞导致错误。
+	 */
+	protected ThreadPoolExecutor shortUrlPool = null;
 
+	protected LinkedBlockingDeque<Runnable> pendingShortQueue = new LinkedBlockingDeque<Runnable>(150);
+	
+	
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -89,7 +102,15 @@ public class ShortUrlService {
 				10, 
 				TimeUnit.SECONDS, 
 				new LinkedBlockingDeque<Runnable>(50)
-				);		
+				);
+		
+		shortUrlPool = new ThreadPoolExecutor(
+				15,
+				writeLogThread * 2,
+				10, 
+				TimeUnit.SECONDS, 
+				pendingShortQueue
+				);
 		
 		if(Settings.getString(Settings.WRITE_ACCESS_LOG, "y").equals("y")){
 			accesslog = LogFactory.getLog("click.accesslog");
@@ -101,45 +122,70 @@ public class ShortUrlService {
 		http = HTTPClient.create(inSAE ? "simple" : "apache");
 	}
 	
-	public ShortUrlModel getShortUrlInfo(String shortKey, boolean noCache){
-		Object tmp = cache.get(shortKey, true);
+	public ShortUrlModel getShortUrlInfo(final String shortKey, boolean noCache){
+		Object tmp = null;
 		
-		if(tmp == null || noCache){
-			Map<String, Object> param = new HashMap<String, Object>();
-			param.put("short_key", shortKey);
-			param.put("auto_mobile", "y");
-			
-			String errorMsg = "";
-			for(int i = 0; i < 3; i++){
-				HTTPResult r = api.call("tool_convert_long_url", param);
-				
-				ShortUrlModel m = new ShortUrlModel();
-				if(r.isOK){
-					if(i > 0){
-						log.warn(String.format("The short url '%s' is get with retry %s times", shortKey, i));
+		for(int i = 0; i < 2 && tmp == null; i++){
+			tmp = cache.get(shortKey, true);
+			if(tmp == null || noCache){
+				if(pendingShortQueue.remainingCapacity() > 1){
+					shortUrlPool.execute(new Runnable(){
+						public void run(){
+							try{
+								getFromRemote(shortKey);
+							}finally{
+								synchronized(shortKey){
+									shortKey.notifyAll();
+								}
+							}
+						}
+					});
+					synchronized(shortKey){
+						try {
+							shortKey.wait(1000 * 4);
+							tmp = cache.get(shortKey, true);
+						} catch (InterruptedException e) {
+						}
 					}
-					m.shortKey = shortKey;
-					m.longUrl = r.getString("data.long_url");
-					m.mobileLongUrl = r.getString("data.mobile_long_url");
-					cache.set(shortKey, m, urlCacheTime * 60);
-					
-					tmp = m;
-					break;
-				}
-				errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
-				try{
-					Thread.sleep(1000 * (i + 1));
-				}catch(Exception e){}
-			}
-			if(tmp == null){
-				log.error(String.format("The short url '%s' is not found, error:%s", shortKey, errorMsg));				
-			}
+				}else {
+					log.error("Have too many pending short url, queue size:" + pendingShortQueue.size());
+				}	
+			}			
 		}
 		
 		if(tmp != null && tmp instanceof ShortUrlModel){
 			return (ShortUrlModel)tmp;
 		}
 		return null;
+	}
+	
+	protected void getFromRemote(String shortKey){
+		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("short_key", shortKey);
+		param.put("auto_mobile", "y");
+
+		String errorMsg = "";
+		for(int i = 0; i < 3; i++){
+			HTTPResult r = api.call("tool_convert_long_url", param);
+			
+			ShortUrlModel m = new ShortUrlModel();
+			if(r.isOK){
+				if(i > 0){
+					log.warn(String.format("The short url '%s' is get with retry %s times", shortKey, i));
+				}
+				m.shortKey = shortKey;
+				m.longUrl = r.getString("data.long_url");
+				m.mobileLongUrl = r.getString("data.mobile_long_url");
+				cache.set(shortKey, m, urlCacheTime * 60);
+				
+				break;
+			}
+			errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
+			log.error(String.format("The short url '%s' is not found, error:%s", shortKey, errorMsg));
+			try{
+				Thread.sleep(1000 * (i + 1));
+			}catch(Exception e){}
+		}
 	}
 	
 	public void writeClickLog(final ShortUrlModel model){
