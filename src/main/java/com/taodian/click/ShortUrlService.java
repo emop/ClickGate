@@ -15,6 +15,7 @@ import com.taodian.emop.Settings;
 import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
 import com.taodian.emop.utils.CacheApi;
+import com.taodian.emop.utils.SAECacheWrapper;
 import com.taodian.emop.utils.SimpleCacheApi;
 
 /**
@@ -50,7 +51,7 @@ public class ShortUrlService {
 	/**
 	 * 查询短网址的线程池，把从API查询长连接，放到独立的线程去做。避免HTTP 线程被阻塞导致错误。
 	 */
-	protected ThreadPoolExecutor shortUrlPool = null;
+	//protected ThreadPoolExecutor shortUrlPool = null;
 
 	protected LinkedBlockingDeque<Runnable> pendingShortQueue = new LinkedBlockingDeque<Runnable>(150);
 	
@@ -97,13 +98,13 @@ public class ShortUrlService {
 				);
 		
 		syncPool = new ThreadPoolExecutor(
-				15,
+				5,
 				writeLogThread * 2,
 				10, 
 				TimeUnit.SECONDS, 
 				new LinkedBlockingDeque<Runnable>(50)
 				);
-		
+		/*
 		shortUrlPool = new ThreadPoolExecutor(
 				15,
 				writeLogThread * 2,
@@ -111,13 +112,17 @@ public class ShortUrlService {
 				TimeUnit.SECONDS, 
 				pendingShortQueue
 				);
-		
+		*/
 		if(Settings.getString(Settings.WRITE_ACCESS_LOG, "y").equals("y")){
 			accesslog = LogFactory.getLog("click.accesslog");
 		}
 		
 		urlCacheTime = Settings.getInt(Settings.CACHE_URL_TIMEOUT, 60);
-
+		/*
+		if(inSAE){
+			cache = new SAECacheWrapper();
+		}
+		*/
 		
 		http = HTTPClient.create(inSAE ? "simple" : "apache");
 	}
@@ -129,7 +134,7 @@ public class ShortUrlService {
 			tmp = cache.get(shortKey, true);
 			if(tmp == null || noCache){
 				if(pendingShortQueue.remainingCapacity() > 1){
-					shortUrlPool.execute(new Runnable(){
+					workerPool.execute(new Runnable(){
 						public void run(){
 							try{
 								getFromRemote(shortKey);

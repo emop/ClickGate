@@ -53,10 +53,13 @@ click.zaol.cn -- 阿里云和聚石塔的DNS轮询。
 
 本地编译和运行
 ===========
+* 本地编译前需要先部署SAE本地开发环境
 
 ```
 
-#mvn mvn assembly:assembly  -- 编译一个完整的Jar包
+mvn install:install-file -DgroupId=com.sina.sae -DartifactId=SAELocal -Dversion=1.0.0 -Dpackaging=jar -Dfile=lib/sae-local-1.0.0.jar -DgeneratePom=true
+
+#mvn assembly:assembly  -- 编译一个完整的Jar包
 #java -jar traget\ClickGate-1.0-SNAPSHOT.jar  --运行
 ```
 

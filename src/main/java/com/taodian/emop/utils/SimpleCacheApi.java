@@ -9,6 +9,8 @@ import java.util.Vector;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.taodian.emop.Settings;
+
 
 public class SimpleCacheApi implements CacheApi {
 	private Map<String, CacheItem> cache = new HashMap<String, CacheItem>();
@@ -35,17 +37,27 @@ public class SimpleCacheApi implements CacheApi {
 
 		if (System.currentTimeMillis() - lastCleanUp > 1000 * 30) {
 			lastCleanUp = System.currentTimeMillis();
-			new Thread(){
-				public void run(){
-					if(l.tryLock()){
-						try{
-							cleanObject();
-						}finally{
-							l.unlock();
+			if(!Settings.getString("in_sae", "n").equals("y")){
+				new Thread(){
+					public void run(){
+						if(l.tryLock()){
+							try{
+								cleanObject();
+							}finally{
+								l.unlock();
+							}
 						}
 					}
+				}.start();
+			}else {
+				if(l.tryLock()){
+					try{
+						cleanObject();
+					}finally{
+						l.unlock();
+					}
 				}
-			}.start();
+			}
 		}
 
 		CacheItem item = cache.get(key);
