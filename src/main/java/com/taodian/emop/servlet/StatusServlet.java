@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.taodian.click.ShortUrlService;
 import com.taodian.click.monitor.StatusMonitor;
+import com.taodian.emop.Settings;
 
 
 
@@ -30,6 +31,8 @@ public class StatusServlet extends HttpServlet {
 		StatusMonitor.output(response.getWriter());
 		cacheStatus(response.getWriter());
 		outputJVMStatus(response.getWriter());
+		
+		outputJVMSetting(response.getWriter());
     }
     
     private void cacheStatus(PrintWriter out){
@@ -57,6 +60,7 @@ public class StatusServlet extends HttpServlet {
     	out.println(String.format("当前线程数:%s", Thread.activeCount()));
     	//Thread.
     	//Thread.get
+    	/*
     	Map<Thread, StackTraceElement[]> threads = Thread.getAllStackTraces();
     	
     	out.println("\n---------线程列表---------");
@@ -73,8 +77,20 @@ public class StatusServlet extends HttpServlet {
     		//t.i
     		
     	}
+    	*/
     }
     
+    private void outputJVMSetting(PrintWriter out) throws IOException{
+    	out.println("\n==============应用状态=================");
+    	ShortUrlService s = ShortUrlService.getInstance();
+    	int writeLog = s.writeLogQueue.size();
+    	int getUrl = s.pendingShortKey.size();
+    	
+    	out.println(String.format("写日志队列:%s, 短网址等待数:%s",writeLog, getUrl));
+    	
+    	out.println("\n------------应用设置------------");
+    	Settings.dumpSetting(out);
+    }	
     private int toM(long m){
     	return (int)(m / 1024 / 1024);
     }

@@ -2,6 +2,7 @@ package com.taodian.click;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -15,7 +16,6 @@ import com.taodian.emop.Settings;
 import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
 import com.taodian.emop.utils.CacheApi;
-import com.taodian.emop.utils.SAECacheWrapper;
 import com.taodian.emop.utils.SimpleCacheApi;
 
 /**
@@ -52,9 +52,14 @@ public class ShortUrlService {
 	 * 查询短网址的线程池，把从API查询长连接，放到独立的线程去做。避免HTTP 线程被阻塞导致错误。
 	 */
 	protected ThreadPoolExecutor shortUrlPool = null;
-
-	protected LinkedBlockingDeque<Runnable> pendingShortQueue = new LinkedBlockingDeque<Runnable>(150);
 	
+	/**
+	 * 这两个对队列，本身是应该为protected类型的。只是为了方便status里面显示，设置为public。
+	 */
+	public LinkedBlockingDeque<Runnable> pendingShortQueue = new LinkedBlockingDeque<Runnable>(150);
+	public LinkedBlockingDeque<Runnable> writeLogQueue = null; //new LinkedBlockingDeque<Runnable>(150);
+
+	public CopyOnWriteArraySet<String> pendingShortKey = new CopyOnWriteArraySet<String>();
 	
 	
 	public static synchronized ShortUrlService getInstance(){
@@ -89,13 +94,15 @@ public class ShortUrlService {
 		int queueSize = Settings.getInt(Settings.WRITE_LOG_QUEUE_SIZE, 1024);
 		int shortUrlThread = Settings.getInt(Settings.GET_SHORT_URL_THREAD_COUNT, 50);
 		
+		writeLogQueue = new LinkedBlockingDeque<Runnable>(queueSize);
+
 		log.debug("start log write thread pool, core size:" + writeLogThread + ", queue size:");
 		workerPool = new ThreadPoolExecutor(
 				writeLogThread,
 				writeLogThread * 2,
 				10, 
 				TimeUnit.SECONDS, 
-				new LinkedBlockingDeque<Runnable>(queueSize)
+				writeLogQueue
 				);
 		
 		syncPool = new ThreadPoolExecutor(
@@ -135,17 +142,23 @@ public class ShortUrlService {
 			tmp = cache.get(shortKey, true);
 			if(tmp == null || noCache){
 				if(pendingShortQueue.remainingCapacity() > 1){
-					shortUrlPool.execute(new Runnable(){
-						public void run(){
-							try{
-								getFromRemote(shortKey);
-							}finally{
-								synchronized(shortKey){
-									shortKey.notifyAll();
+					if(!pendingShortKey.contains(shortKey)){
+						pendingShortKey.add(shortKey);
+						shortUrlPool.execute(new Runnable(){
+							public void run(){
+								try{
+									getFromRemote(shortKey);
+								}finally{
+									pendingShortKey.remove(shortKey);
+									synchronized(shortKey){
+										shortKey.notifyAll();
+									}
 								}
 							}
-						}
-					});
+						});
+					}else {
+						log.warn("short key in pending:" + shortKey);
+					}
 					synchronized(shortKey){
 						try {
 							shortKey.wait(1000 * 4);
@@ -160,7 +173,14 @@ public class ShortUrlService {
 		}
 		
 		if(tmp != null && tmp instanceof ShortUrlModel){
-			return (ShortUrlModel)tmp;
+			/**
+			 * 删除错误的转换结果。
+			 */
+			ShortUrlModel m = (ShortUrlModel)tmp;
+			if(m.longUrl == null || m.longUrl.length() < 5){
+				cache.remove(shortKey);
+			}
+			return m;
 		}
 		return null;
 	}
@@ -185,8 +205,7 @@ public class ShortUrlService {
 				cache.set(shortKey, m, urlCacheTime * 60);
 				
 				break;
-			}
-			/*
+			} //已经明确的返回错误了，就不用重试了。		
 			else if(r.errorCode != null && r.errorCode.equals("not_found")){
 				m.shortKey = shortKey;
 				m.longUrl = "/";
@@ -194,7 +213,7 @@ public class ShortUrlService {
 				cache.set(shortKey, m, urlCacheTime * 60);
 				
 				break;
-			}*/
+			}
 			errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
 			log.error(String.format("The short url '%s' is not found, error:%s", shortKey, errorMsg));
 			try{

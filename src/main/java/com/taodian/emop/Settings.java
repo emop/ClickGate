@@ -3,10 +3,9 @@ package com.taodian.emop;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -35,7 +34,7 @@ public class Settings {
 
 	
 	private static Log log = LogFactory.getLog("click.settings");
-	protected static Properties settings = System.getProperties();	
+	protected static Properties settings = new Properties(); //System.getProperties();	
 	private static String confName = "short_url.conf";
 	
 	//private String[] masterSettings = new String[]{};
@@ -87,6 +86,12 @@ public class Settings {
 		return intVal;
 	}	
 	
-
+	public static void dumpSetting(PrintWriter out) throws IOException{
+		
+		Properties tmp = new Properties();
+		tmp.putAll(settings);
+		tmp.put("taodian.api_secre", "****");
+		tmp.store(out, "");
+	}
 		
 }
