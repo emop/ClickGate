@@ -179,14 +179,16 @@ public class ShortUrlService {
 				cache.set(shortKey, m, urlCacheTime * 60);
 				
 				break;
-			}else if(r.errorCode != null && r.errorCode.equals("not_found")){
+			}
+			/*
+			else if(r.errorCode != null && r.errorCode.equals("not_found")){
 				m.shortKey = shortKey;
 				m.longUrl = "/";
 				m.mobileLongUrl = "/";
 				cache.set(shortKey, m, urlCacheTime * 60);
 				
 				break;
-			}
+			}*/
 			errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
 			log.error(String.format("The short url '%s' is not found, error:%s", shortKey, errorMsg));
 			try{
