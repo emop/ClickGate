@@ -90,7 +90,7 @@ public class Settings {
 		
 		Properties tmp = new Properties();
 		tmp.putAll(settings);
-		tmp.put("taodian.api_secre", "****");
+		tmp.put("taodian.api_secret", "****");
 		tmp.store(out, "");
 	}
 		
