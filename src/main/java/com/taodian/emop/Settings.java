@@ -24,6 +24,8 @@ public class Settings {
 	
 	public static final String WRITE_LOG_QUEUE_SIZE = "write_log_queue_size";
 	public static final String WRITE_LOG_THREAD_COUNT = "write_log_thread_count";
+	public static final String GET_SHORT_URL_THREAD_COUNT = "get_short_url_thread_count";
+
 	
 	public static final String WRITE_ACCESS_LOG = "write_access_log";
 

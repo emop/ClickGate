@@ -51,7 +51,7 @@ public class ShortUrlService {
 	/**
 	 * 查询短网址的线程池，把从API查询长连接，放到独立的线程去做。避免HTTP 线程被阻塞导致错误。
 	 */
-	//protected ThreadPoolExecutor shortUrlPool = null;
+	protected ThreadPoolExecutor shortUrlPool = null;
 
 	protected LinkedBlockingDeque<Runnable> pendingShortQueue = new LinkedBlockingDeque<Runnable>(150);
 	
@@ -87,6 +87,7 @@ public class ShortUrlService {
 		
 		int writeLogThread = Settings.getInt(Settings.WRITE_LOG_THREAD_COUNT, 10);
 		int queueSize = Settings.getInt(Settings.WRITE_LOG_QUEUE_SIZE, 1024);
+		int shortUrlThread = Settings.getInt(Settings.GET_SHORT_URL_THREAD_COUNT, 50);
 		
 		log.debug("start log write thread pool, core size:" + writeLogThread + ", queue size:");
 		workerPool = new ThreadPoolExecutor(
@@ -104,15 +105,15 @@ public class ShortUrlService {
 				TimeUnit.SECONDS, 
 				new LinkedBlockingDeque<Runnable>(50)
 				);
-		/*
+
 		shortUrlPool = new ThreadPoolExecutor(
-				15,
-				writeLogThread * 2,
+				shortUrlThread,
+				shortUrlThread * 2,
 				10, 
 				TimeUnit.SECONDS, 
 				pendingShortQueue
 				);
-		*/
+
 		if(Settings.getString(Settings.WRITE_ACCESS_LOG, "y").equals("y")){
 			accesslog = LogFactory.getLog("click.accesslog");
 		}
@@ -134,7 +135,7 @@ public class ShortUrlService {
 			tmp = cache.get(shortKey, true);
 			if(tmp == null || noCache){
 				if(pendingShortQueue.remainingCapacity() > 1){
-					workerPool.execute(new Runnable(){
+					shortUrlPool.execute(new Runnable(){
 						public void run(){
 							try{
 								getFromRemote(shortKey);
