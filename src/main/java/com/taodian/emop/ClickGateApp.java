@@ -44,6 +44,8 @@ public class ClickGateApp
         server.setHandler(context);
  
         context.addServletWithMapping(ShortUrlServlet.class, "/c/*");
+        context.addServletWithMapping(ShortUrlServlet.class, "/t/*");
+
         context.addServletWithMapping(StatusServlet.class, "/status");
 
         context.addServletWithMapping(IndexServlet.class, "/*");

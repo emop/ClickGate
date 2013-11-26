@@ -135,34 +135,37 @@ public class ShortUrlService {
 		http = HTTPClient.create(inSAE ? "simple" : "apache");
 	}
 	
-	public ShortUrlModel getShortUrlInfo(final String shortKey, boolean noCache){
+	
+
+	public ShortUrlModel getTaobaokeUrlInfo(final URLInput req, boolean noCache){
+		final String uri = req.getURI();
 		Object tmp = null;
 		
 		for(int i = 0; i < 2 && tmp == null; i++){
-			tmp = cache.get(shortKey, true);
+			tmp = cache.get(uri, true);
 			if(tmp == null || noCache){
 				if(pendingShortQueue.remainingCapacity() > 1){
-					if(!pendingShortKey.contains(shortKey)){
-						pendingShortKey.add(shortKey);
+					if(!pendingShortKey.contains(uri)){
+						pendingShortKey.add(uri);
 						shortUrlPool.execute(new Runnable(){
 							public void run(){
 								try{
-									getFromRemote(shortKey);
+									convertTaokeLink(req);
 								}finally{
-									pendingShortKey.remove(shortKey);
-									synchronized(shortKey){
-										shortKey.notifyAll();
+									pendingShortKey.remove(uri);
+									synchronized(uri){
+										uri.notifyAll();
 									}
 								}
 							}
 						});
 					}else {
-						log.warn("short key in pending:" + shortKey);
+						log.warn("short key in pending:" + uri);
 					}
-					synchronized(shortKey){
+					synchronized(uri){
 						try {
-							shortKey.wait(1000 * 4);
-							tmp = cache.get(shortKey, true);
+							uri.wait(1000 * 4);
+							tmp = cache.get(uri, true);
 						} catch (InterruptedException e) {
 						}
 					}
@@ -178,20 +181,32 @@ public class ShortUrlService {
 			 */
 			ShortUrlModel m = (ShortUrlModel)tmp;
 			if(m.longUrl == null || m.longUrl.length() < 5){
-				cache.remove(shortKey);
+				cache.remove(uri);
 			}
+			m.uri = req;
 			return m;
 		}
 		return null;
 	}
+
+	protected void convertTaokeLink(URLInput key){
+		if(key.type.equals(URLInput.INPUT_SHORT_URL)){
+			getLongUrlFromRemote(key.getURI(), key.shortKey);
+		}else {
+			getTaokeFromRemote(key.getURI(), key.userName, key.info);
+		}
+	}
+
+	protected void getTaokeFromRemote(String uri, String userName, String info){
+	}
 	
-	protected void getFromRemote(String shortKey){
+	protected void getLongUrlFromRemote(String uri, String shortKey){
 		Map<String, Object> param = new HashMap<String, Object>();
 		param.put("short_key", shortKey);
 		param.put("auto_mobile", "y");
 
 		String errorMsg = "";
-		for(int i = 0; i < 3; i++){
+		for(int i = 0; i < 2; i++){
 			HTTPResult r = api.call("tool_convert_long_url", param);
 			
 			ShortUrlModel m = new ShortUrlModel();
@@ -202,7 +217,7 @@ public class ShortUrlService {
 				m.shortKey = shortKey;
 				m.longUrl = r.getString("data.long_url");
 				m.mobileLongUrl = r.getString("data.mobile_long_url");
-				cache.set(shortKey, m, urlCacheTime * 60);
+				cache.set(uri, m, urlCacheTime * 60);
 				
 				break;
 			} //已经明确的返回错误了，就不用重试了。		
@@ -210,7 +225,7 @@ public class ShortUrlService {
 				m.shortKey = shortKey;
 				m.longUrl = "/";
 				m.mobileLongUrl = "/";
-				cache.set(shortKey, m, urlCacheTime * 60);
+				cache.set(uri, m, urlCacheTime * 60);
 				
 				break;
 			}

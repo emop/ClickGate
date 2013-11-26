@@ -93,6 +93,8 @@ public class ShortUrlModel implements Serializable, Cloneable{
 	 * 点击的短网址，14位以内的字符串。
 	 */
 	public String shortKey = null;
+
+	public URLInput uri = null;
 	
 	/**
 	 * 点击的来源，例如：http://t.qq.com/q879779218。 如果点击经过多次跳转，就不准确了，

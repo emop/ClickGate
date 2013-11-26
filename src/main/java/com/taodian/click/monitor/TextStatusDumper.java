@@ -52,7 +52,7 @@ public class TextStatusDumper {
 		ShortUrlModel s = (ShortUrlModel)item.obj;
 				
 		String msg = String.format("%6d(ms) %s s:%s, uid:%s, ip:%s, mobile:%s, refer:%s", item.elapsed, sdf.format(new Date(item.start)),
-				s.shortKey, s.uid, s.ip, s.isMobile, s.refer
+				s.uri != null ? s.uri.toString() : s.shortKey, s.uid, s.ip, s.isMobile, s.refer
 				);
 		writer.println(msg);
 	}

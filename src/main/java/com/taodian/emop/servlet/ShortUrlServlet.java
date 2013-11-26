@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,6 +22,7 @@ import org.apache.commons.logging.LogFactory;
 import com.taodian.api.TaodianApi;
 import com.taodian.click.ShortUrlModel;
 import com.taodian.click.ShortUrlService;
+import com.taodian.click.URLInput;
 import com.taodian.click.monitor.Benchmark;
 import com.taodian.emop.Settings;
 
@@ -62,18 +62,18 @@ public class ShortUrlServlet extends HttpServlet {
 	 * 网址的GET请求处理，生成2次提交表单返回。
 	 */
 	protected void doGet(HttpServletRequest req, HttpServletResponse response) throws IOException{
-		String key = this.getUrlKey(req);
+		URLInput key = this.getUrlKey(req);
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.setCharacterEncoding("utf8");
 		response.setHeader("Cache-Control", "no-cache");
 		
 		//log.debug("-------------------key:" + key);
 		
-		if(key != null && key.length() > 4){
+		if(key != null){
 			Benchmark mark = Benchmark.start(Benchmark.SHORT_KEY_GET);
 			String nocache = req.getParameter("no_cache");
 
-			ShortUrlModel model = service.getShortUrlInfo(key, nocache != null && nocache.trim().toLowerCase().equals("y"));
+			ShortUrlModel model = service.getTaobaokeUrlInfo(key, nocache != null && nocache.trim().toLowerCase().equals("y"));
 			
 			/**
 			 * 做一个clone，因为记录点击状态的时候。需要加入本次的点击信息。多个点击之间会出现冲突。
@@ -82,21 +82,21 @@ public class ShortUrlServlet extends HttpServlet {
 				model = model.copy();
 				trackClickInfo(model, req, response);
 
-				Map<String, String> param = createSubmitForm(model, req);
+				Map<String, String> param = createSubmitForm(key, model, req);
 				outputSubmitForm(param, response);
 				
 				mark.attachObject(model);
 				mark.done();
 			}else {
 				model = new ShortUrlModel();
-				model.shortKey = key;
+				model.shortKey = key.getURI();
 				trackClickInfo(model, req, response);
 				
 				mark.attachObject(model);
 				mark.done(Benchmark.SHORT_KEY_NOT_FOUND, 0);
 				
 				response.setContentType("text/plain");
-				response.getWriter().println("短网址转换失败:" + key);				
+				response.getWriter().println("淘客地址转换失败:" + key.getURI());				
 			}
 		}else {
 			response.setContentType("text/plain");
@@ -105,13 +105,13 @@ public class ShortUrlServlet extends HttpServlet {
 	}
 	
 	protected void doPost(HttpServletRequest req, HttpServletResponse response) throws IOException{
-		String key = this.getUrlKey(req);
+		URLInput key = this.getUrlKey(req);
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.setCharacterEncoding("utf8");
 		
-		if(key != null && key.length() > 4){
+		if(req != null){
 			Benchmark mark = Benchmark.start(Benchmark.SHORT_KEY_POST);
-			ShortUrlModel model = service.getShortUrlInfo(key, false);
+			ShortUrlModel model = service.getTaobaokeUrlInfo(key, false);
 			if(model != null){
 				model = model.copy();
 				trackClickInfo(model, req, response);
@@ -121,7 +121,7 @@ public class ShortUrlServlet extends HttpServlet {
 				//log.warn("next url:" + n.isOK + ", url:" + n.url);
 				if(n.isOK){
 					service.writeClickLog(model);
-					mark.done();				
+					mark.done();	
 				}else {
 					mark.done(Benchmark.SHORT_KEY_POST_CHECK_ERROR, 0);
 				}
@@ -255,7 +255,7 @@ public class ShortUrlServlet extends HttpServlet {
 	
 	/**
 	 */
-	protected Map<String, String> createSubmitForm(ShortUrlModel model, HttpServletRequest req){
+	protected Map<String, String> createSubmitForm(URLInput key, ShortUrlModel model, HttpServletRequest req){
 		Map<String, String> p = new HashMap<String, String>();
 		
 		String clickTime = System.currentTimeMillis() + "";
@@ -264,7 +264,9 @@ public class ShortUrlServlet extends HttpServlet {
 		p.put("click_time", clickTime);
 		p.put("user_id", model.uid);
 		p.put("refer", model.refer);
-		p.put("short_key", model.shortKey);
+		//p.put("short_key", model.shortKey);
+		
+		p.put("uri", key.getURI());
 		p.put("auto_mobile", req.getParameter("auto_mobile"));	
 		p.put("source_domain", Settings.getString(Settings.TAOKE_SOURCE_DOMAIN, "wap.emop.cn"));
 		
@@ -325,17 +327,28 @@ public class ShortUrlServlet extends HttpServlet {
 		return false;
 	}
 	
-	private String getUrlKey(HttpServletRequest req){
-        Pattern pa = Pattern.compile("(c|t)/([a-zA-Z0-9]+)");
+	private URLInput getUrlKey(HttpServletRequest req){
+        Pattern pa = Pattern.compile("(c|t)/([a-zA-Z0-9]+)(/([%a-zA-Z0-9]+))?");
         Matcher ma = pa.matcher(req.getRequestURI());
+        
+        URLInput url = null;
         if(ma.find()){
-        	String key = ma.group(2);
-			try {
-				key = URLDecoder.decode(key, "UTF8");
-			} catch (UnsupportedEncodingException e) {
-			}
-			
-        	return key;
+        	url = new URLInput();
+        	String type = ma.group(1);
+        	if(type.equals("c")){
+        		url.type = URLInput.INPUT_SHORT_URL;
+				url.shortKey = ma.group(2);
+        	}else if(type.equals("t") && ma.group(4) != null){
+        		url.type = URLInput.INPUT_TAOKE_ONLINE;
+				try {
+					url.userName = ma.group(2);
+					url.info = URLDecoder.decode(ma.group(4), "UTF8");
+				} catch (UnsupportedEncodingException e) {
+				}
+        	}else {
+        		return null;
+        	}
+        	return url;
         }
 		
 		return null;
