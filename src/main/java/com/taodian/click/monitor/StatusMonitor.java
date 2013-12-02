@@ -6,6 +6,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import com.taodian.click.monitor.marks.CPCRequest;
 import com.taodian.click.monitor.marks.HTTPRequest;
 
 public class StatusMonitor {
@@ -18,9 +19,10 @@ public class StatusMonitor {
 	public HTTPRequest get = new HTTPRequest();
 
 	public HTTPRequest notfound = new HTTPRequest();
-	
-	//public PendingRequest pending = new PendingRequest();
 
+	public CPCRequest cpcOk = new CPCRequest();
+	public CPCRequest cpcErr = new CPCRequest();
+	
 	public Date uptime = null;
 
 	private StatusMonitor(){
@@ -69,8 +71,11 @@ public class StatusMonitor {
 				post.markRequest(m);
 			}else if(m.type.equals(Benchmark.SHORT_KEY_NOT_FOUND)){
 				notfound.markRequest(m);
+			}else if(m.type.equals(Benchmark.CPC_CLICK_OK)){
+				cpcOk.markRequest(m);
+			}else if(m.type.equals(Benchmark.CPC_CLICK_FAILED)){
+				cpcErr.markRequest(m);
 			}
 		}
-
 	}
 }

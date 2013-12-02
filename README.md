@@ -51,6 +51,7 @@ click.zaol.cn -- 阿里云和聚石塔的DNS轮询。
 *  cache_url_timeout -- 短网址缓存时间，单位:分钟。默认:60
 *  in_sae -- 是否在SAE环境中运行。默认n, 可选值(y|n)
 *  get_short_url_thread_count -- 查询短网址的线程数量。
+*  default_cpc_click_price -- 默认点击价格。(单位：分)
 
 
 本地编译和运行

@@ -20,6 +20,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.taodian.api.TaodianApi;
+import com.taodian.click.NextURL;
 import com.taodian.click.ShortUrlModel;
 import com.taodian.click.ShortUrlService;
 import com.taodian.click.URLInput;
@@ -239,16 +240,20 @@ public class ShortUrlServlet extends HttpServlet {
 			log.warn(String.format("the second submit time is delay so far, ms:" + c));			
 		}
 		
-		model.isMobile = isMobile(req);
 		next.url = "/";
+		model.isMobile = isMobile(req);
 		if(next.isOK){
-			if(model.isMobile && model.mobileLongUrl != null && model.mobileLongUrl.startsWith("http://")){
-				next.url = model.mobileLongUrl;
+			if(model.shortKeySource != null && model.shortKeySource.equals("cpc")) {
+				next = service.cpcServiceCheck(model, next);
 			}else {
-				next.url = model.longUrl;
+				if(model.isMobile && model.mobileLongUrl != null && model.mobileLongUrl.startsWith("http://")){
+					next.url = model.mobileLongUrl;
+				}else {
+					next.url = model.longUrl;
+				}
 			}
-			next.isOK = next.url != null && next.url.startsWith("http:");
 		}
+		next.isOK = next.url != null && next.url.startsWith("http:");
 		
 		return next;
 	}
@@ -354,9 +359,6 @@ public class ShortUrlServlet extends HttpServlet {
 		return null;
 	}
 	
-	class NextURL{
-		public String url = null;
-		public boolean isOK = false;
-	}
+
 	
 }

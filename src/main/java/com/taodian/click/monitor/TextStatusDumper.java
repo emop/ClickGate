@@ -5,6 +5,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import com.taodian.click.ShopAccount;
 import com.taodian.click.ShortUrlModel;
 import com.taodian.emop.Version;
 
@@ -21,6 +22,8 @@ public class TextStatusDumper {
 		
 		getOutput(writer, status);
 		notFoundOutput(writer, status);
+		
+		cpcStatus(writer, status);
 
 		httpOutput(writer, com.taodian.api.monitor.StatusMonitor.monitor);		
 	}
@@ -112,4 +115,31 @@ public class TextStatusDumper {
 		}
 	}	
 	
+	public static void cpcStatus(PrintWriter writer, StatusMonitor status){
+		writer.println("");
+		writer.println("==========CPC点击统计统计==========");
+		writer.println("总调用次数:" + status.cpcOk.requestCount);
+		
+		writer.println("");
+		writer.println("----------正常店铺状态列表-----------");
+		for(ShopAccount item : status.cpcOk.uniqueList.list()){
+			cpcShopOutput(writer, item);
+		}
+
+		writer.println("");
+		writer.println("----------异常店铺状态列表-----------");
+		for(ShopAccount item : status.cpcErr.uniqueList.list()){
+			cpcShopOutput(writer, item);
+		}
+	}
+
+	private static void cpcShopOutput(PrintWriter writer, ShopAccount item){
+		if(item == null) return;
+		//if(item.obj == null || !(item.obj instanceof ShopAccount)) return;
+		//ShopAccount s = (ShopAccount)item.obj;
+				
+		String msg = String.format("%s shop id:%s, balance:%s, status:%s", sdf.format(new Date(item.created)),
+				item.shopId, item.banlance, item.status);
+		writer.println(msg);
+	}	
 }

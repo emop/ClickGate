@@ -11,7 +11,10 @@ public class Benchmark {
 	public static final String SHORT_KEY_NOT_FOUND = "short_key_not_found";
 
 	public static final String SHORT_KEY_get_cache = "short_key_get_cache";
-	
+
+	public static final String CPC_CLICK_OK = "cpc_click_ok";
+	public static final String CPC_CLICK_FAILED = "cpc_click_erro";
+
 	
 	public long start = 0;
 	public long end = 0;

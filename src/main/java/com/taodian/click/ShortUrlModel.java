@@ -82,6 +82,7 @@ public class ShortUrlModel implements Serializable, Cloneable{
 	 * 微博ID
 	 */
 	public String outId = null;
+	public String platform = null;
 	
 	/**
 	 * 点击的客户端IP，例如：104.11.20.11
