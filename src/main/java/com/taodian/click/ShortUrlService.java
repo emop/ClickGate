@@ -426,7 +426,7 @@ public class ShortUrlService {
 	
 	private ShopItemPrice getShopItemPrice(final long shopId, final long numIid){
 		final String ac = "item_" + shopId + "_" + numIid;
-		ShopItemPrice account = null;
+		ShopItemPrice price = null;
 		Object tmp = null;
 		for(int i = 0; i < 2 && tmp == null; i++){
 			tmp = cpcCache.get(ac);
@@ -463,17 +463,17 @@ public class ShortUrlService {
 		}
 		
 		if(tmp != null && (tmp instanceof ShopItemPrice)){
-			account = (ShopItemPrice)tmp;
+			price = (ShopItemPrice)tmp;
 		}else {
-			account = new ShopItemPrice();
-			account.numIid = numIid;
-			account.price = 0;
-			int price = Settings.getInt("default_cpc_click_price", 10);
-			account.price = price / 100.0f;
-			cpcCache.set(ac, account, 60);
+			price = new ShopItemPrice();
+			price.numIid = numIid;
+			price.price = 0;
+			int itemPrice = Settings.getInt("default_cpc_click_price", 10);
+			price.price = itemPrice / 100.0f;
+			cpcCache.set(ac, price, 60);
 		}
 		
-		return account;
+		return price;
 	}	
 	
 	private ShopAccount getRemoteAccount(String ck, long shopId){
@@ -493,7 +493,7 @@ public class ShortUrlService {
 			if(s != null && s.equals("0")){
 				ac.banlance = Float.parseFloat(f);
 			}
-			cpcCache.set(ck, ac, 5 * 60);
+			cpcCache.set(ck, ac, 2 * 60);
 		}else {
 			ac.status = r.errorCode;
 		}
