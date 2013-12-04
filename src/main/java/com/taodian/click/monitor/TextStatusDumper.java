@@ -138,7 +138,7 @@ public class TextStatusDumper {
 		//if(item.obj == null || !(item.obj instanceof ShopAccount)) return;
 		//ShopAccount s = (ShopAccount)item.obj;
 				
-		String msg = String.format("%s shop id:%s, balance:%3$1.2f, status:%4s", sdf.format(new Date(item.created)),
+		String msg = String.format("%1$s shop id:%2$s, balance:%3$1.2f, status:%4$s", sdf.format(new Date(item.created)),
 				item.shopId, item.banlance, item.status);
 		writer.println(msg);
 	}	
