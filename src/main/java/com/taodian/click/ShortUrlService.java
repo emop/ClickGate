@@ -358,7 +358,9 @@ public class ShortUrlService {
 		ShopItemPrice price = this.getShopItemPrice(shopId, numIid);
 		if(account != null && price != null){
 			if(account.banlance > price.price){
+				float old = account.banlance;
 				account.banlance -= price.price;
+				log.info(String.format("shop click, shop:%1s old:%2$1.2f, new:%3$1.2f, price:%4$1.2f", account.shopId, old, account.banlance, price.price));
 			}
 		}
 		
