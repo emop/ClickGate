@@ -306,6 +306,13 @@ public class ShortUrlService {
 			if(hitShopClick(model.shopId, model.numIid)){
 				next.isOK = true;
 				next.url = model.longUrl;
+				
+				/**
+				 * 早期生成的店铺首页。
+				 */
+				if(model.shopId == model.numIid){
+					next.url = "http://shop" + model.shopId + ".taobao.com/";				
+				}
 			}else {
 				next.isOK = false;
 				next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);

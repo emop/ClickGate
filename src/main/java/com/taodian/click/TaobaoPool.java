@@ -116,22 +116,26 @@ public class TaobaoPool {
 			}
 		}
 		
-		param.put("num_iid", item.numIid);
-		param.put("fields", "sale_status,num_iid");
-		param.put("refresh_expired", 5);
-		param.put("dict_list", "y");		
-
-		r = emopApi.call("taobao_items_list_get", param);
-		
-		if(r.isOK){
-			JSONObject obj = r.getJSONObject("data." + item.numIid);
-			Object st = null;
-			if(obj != null){
-				st = obj.get("sale_status");
-				item.saleStatus = st + "";
-				item.isOnSale = st != null && st.equals("onsale");
+		if(item.shopId != item.numIid) {
+			param.put("num_iid", item.numIid);
+			param.put("fields", "sale_status,num_iid");
+			param.put("refresh_expired", 5);
+			param.put("dict_list", "y");
+	
+			r = emopApi.call("taobao_items_list_get", param);
+			
+			if(r.isOK){
+				JSONObject obj = r.getJSONObject("data." + item.numIid);
+				Object st = null;
+				if(obj != null){
+					st = obj.get("sale_status");
+					item.saleStatus = st + "";
+					item.isOnSale = st != null && st.equals("onsale");
+				}
+				log.debug("Shop item in emop api, item:" + item.numIid + ", sale_status:" + st);
 			}
-			log.debug("Shop item in emop api, item:" + item.numIid + ", sale_status:" + st);
+		}else {
+			log.debug("it a shop home page item, item:" + item.numIid);
 		}
 	}	
 	
