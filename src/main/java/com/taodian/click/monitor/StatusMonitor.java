@@ -6,6 +6,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import com.taodian.click.monitor.marks.CPCClickItem;
 import com.taodian.click.monitor.marks.CPCRequest;
 import com.taodian.click.monitor.marks.HTTPRequest;
 
@@ -22,6 +23,7 @@ public class StatusMonitor {
 
 	public CPCRequest cpcOk = new CPCRequest();
 	public CPCRequest cpcErr = new CPCRequest();
+	public CPCClickItem itemErr = new CPCClickItem();
 	
 	public Date uptime = null;
 
@@ -75,6 +77,8 @@ public class StatusMonitor {
 				cpcOk.markRequest(m);
 			}else if(m.type.equals(Benchmark.CPC_CLICK_FAILED)){
 				cpcErr.markRequest(m);
+			}else if(m.type.equals(Benchmark.CPC_ITEM_ERROR)){
+				itemErr.markRequest(m);
 			}
 		}
 	}

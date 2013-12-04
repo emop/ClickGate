@@ -17,7 +17,10 @@ public class ShopItem implements Serializable{
 	public long numIid;
 	public float price;
 	public boolean isOnSale = false;
+	
+	public String saleStatus = "";
 	public long lastRefreshTime = 0;
+	public long created = System.currentTimeMillis();
 	
 	public int hashCode(){
 		return (int)numIid;

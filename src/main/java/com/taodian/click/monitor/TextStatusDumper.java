@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import com.taodian.click.ShopAccount;
+import com.taodian.click.ShopItem;
 import com.taodian.click.ShortUrlModel;
 import com.taodian.emop.Version;
 
@@ -131,15 +132,26 @@ public class TextStatusDumper {
 		for(ShopAccount item : status.cpcErr.uniqueList.list()){
 			cpcShopOutput(writer, item);
 		}
+		
+		writer.println("----------异常商品状态列表-----------");
+		for(ShopItem item : status.itemErr.uniqueList.list()){
+			cpcShopItem(writer, item);
+		}		
 	}
 
 	private static void cpcShopOutput(PrintWriter writer, ShopAccount item){
 		if(item == null) return;
-		//if(item.obj == null || !(item.obj instanceof ShopAccount)) return;
-		//ShopAccount s = (ShopAccount)item.obj;
 				
 		String msg = String.format("%1$s shop id:%2$s, balance:%3$1.2f, status:%4$s", sdf.format(new Date(item.created)),
 				item.shopId, item.banlance, item.status);
 		writer.println(msg);
 	}	
+	
+	private static void cpcShopItem(PrintWriter writer, ShopItem item){
+		if(item == null) return;
+				
+		String msg = String.format("%1$s shop id:%2$s, item id:%3$s price:%4$1.2f, status:%5$s, onsale:%6$s", sdf.format(new Date(item.created)),
+				item.shopId, item.numIid, item.price, item.saleStatus, item.isOnSale);
+		writer.println(msg);
+	}
 }

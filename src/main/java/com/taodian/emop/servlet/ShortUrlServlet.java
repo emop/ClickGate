@@ -253,7 +253,7 @@ public class ShortUrlServlet extends HttpServlet {
 				}
 			}
 		}
-		next.isOK = next.url != null && next.url.startsWith("http:");
+		//next.isOK = next.url != null && next.url.startsWith("http:");
 		
 		return next;
 	}

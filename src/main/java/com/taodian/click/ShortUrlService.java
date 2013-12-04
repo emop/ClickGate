@@ -307,6 +307,7 @@ public class ShortUrlService {
 				next.isOK = true;
 				next.url = model.longUrl;
 			}else {
+				next.isOK = false;
 				next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
 				log.debug("hit cpc error, to default url:" + next.url + ", user id:" + model.userId);
 			}
@@ -373,7 +374,7 @@ public class ShortUrlService {
 		boolean isOk = account != null && account.banlance > 0;
 		Benchmark m = Benchmark.start(Benchmark.CPC_CLICK_OK);
 		m.attachObject(account);
-		if(isOk){
+		if(isOk && item.isOnSale){
 			m.done(Benchmark.CPC_CLICK_OK, 0);
 		}else {
 			m.done(Benchmark.CPC_CLICK_FAILED, 0);
@@ -382,7 +383,8 @@ public class ShortUrlService {
 		if(!item.isOnSale){
 			isOk = false;
 			m = Benchmark.start(Benchmark.CPC_ITEM_ERROR);
-			m.done();			
+			m.attachObject(item);
+			m.done();
 		}
 		
 		return isOk;

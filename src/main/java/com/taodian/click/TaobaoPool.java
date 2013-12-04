@@ -128,6 +128,7 @@ public class TaobaoPool {
 			Object st = null;
 			if(obj != null){
 				st = obj.get("sale_status");
+				item.saleStatus = st + "";
 				item.isOnSale = st != null && st.equals("onsale");
 			}
 			log.debug("Shop item in emop api, item:" + item.numIid + ", sale_status:" + st);
