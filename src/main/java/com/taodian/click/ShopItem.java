@@ -2,18 +2,29 @@ package com.taodian.click;
 
 import java.io.Serializable;
 
-public class ShopItemPrice implements Serializable{
+/**
+ * 店铺商品信息。
+ * 
+ * @author deonwu
+ */
+public class ShopItem implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public ShopAccount shop = null;
+	public long shopId;
 	public long numIid;
 	public float price;
-
+	public boolean isOnSale = false;
+	public long lastRefreshTime = 0;
 	
 	public int hashCode(){
 		return (int)numIid;
 	}
 	
 	public boolean equals(Object o){
-		if(o instanceof ShopItemPrice){
+		if(o instanceof ShopItem){
 			return o.hashCode() == this.hashCode();
 		}else {
 			return false;

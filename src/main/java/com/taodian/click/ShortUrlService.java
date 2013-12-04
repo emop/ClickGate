@@ -50,6 +50,8 @@ public class ShortUrlService {
 	private long nextUID = 0;
 	private int urlCacheTime = 0;
 	private int MODE = 10000;
+	
+	protected TaobaoPool taobao = null;
 	/**
 	 * 写点击统计日志的线程池。
 	 */
@@ -141,6 +143,10 @@ public class ShortUrlService {
 			cache = new SAECacheWrapper();
 		}
 		*/
+		taobao = new TaobaoPool();
+		taobao.start(shortUrlPool, api,
+				new TaodianApi(appKey, appSecret, "http://fmei.sinaapp.com/api/route",
+						inSAE ? "simple" : "apache"));
 		
 		http = HTTPClient.create(inSAE ? "simple" : "apache");
 	}
@@ -355,12 +361,12 @@ public class ShortUrlService {
 	 */
 	private boolean hitShopClick(long shopId, long numIid){
 		ShopAccount account = this.getShopAccount(shopId);
-		ShopItemPrice price = this.getShopItemPrice(shopId, numIid);
-		if(account != null && price != null){
-			if(account.banlance > price.price){
+		ShopItem item = taobao.getShopItem(shopId, numIid);
+		if(account != null && item != null){
+			if(account.banlance > item.price){
 				float old = account.banlance;
-				account.banlance -= price.price;
-				log.info(String.format("shop click, shop:%1s old:%2$1.2f, new:%3$1.2f, price:%4$1.2f", account.shopId, old, account.banlance, price.price));
+				account.banlance -= item.price;
+				log.info(String.format("shop click, shop:%1s old:%2$1.2f, new:%3$1.2f, price:%4$1.2f", account.shopId, old, account.banlance, item.price));
 			}
 		}
 		
@@ -371,6 +377,12 @@ public class ShortUrlService {
 			m.done(Benchmark.CPC_CLICK_OK, 0);
 		}else {
 			m.done(Benchmark.CPC_CLICK_FAILED, 0);
+		}
+		
+		if(!item.isOnSale){
+			isOk = false;
+			m = Benchmark.start(Benchmark.CPC_ITEM_ERROR);
+			m.done();			
 		}
 		
 		return isOk;
@@ -426,57 +438,7 @@ public class ShortUrlService {
 		return account;
 	}
 	
-	private ShopItemPrice getShopItemPrice(final long shopId, final long numIid){
-		final String ac = "item_" + shopId + "_" + numIid;
-		ShopItemPrice price = null;
-		Object tmp = null;
-		for(int i = 0; i < 2 && tmp == null; i++){
-			tmp = cpcCache.get(ac);
-			if(tmp == null){
-				if(pendingShortQueue.remainingCapacity() > 1){
-					if(!pendingShortKey.contains(ac)){
-						pendingShortKey.add(ac);
-						shortUrlPool.execute(new Runnable(){
-							public void run(){
-								try{
-									getRemoteShopItemPrice(ac, shopId, numIid);
-								}finally{
-									pendingShortKey.remove(ac);
-									synchronized(ac){
-										ac.notifyAll();
-									}
-								}
-							}
-						});
-					}else {
-						log.warn("item price in pending:" + ac);
-					}
-					synchronized(ac){
-						try {
-							ac.wait(1000 * 4);
-							tmp = cpcCache.get(ac, true);
-						} catch (InterruptedException e) {
-						}
-					}
-				}else {
-					log.error("Have too many pending item price, queue size:" + pendingShortQueue.size());
-				}	
-			}			
-		}
-		
-		if(tmp != null && (tmp instanceof ShopItemPrice)){
-			price = (ShopItemPrice)tmp;
-		}else {
-			price = new ShopItemPrice();
-			price.numIid = numIid;
-			price.price = 0;
-			int itemPrice = Settings.getInt("default_cpc_click_price", 10);
-			price.price = itemPrice / 100.0f;
-			cpcCache.set(ac, price, 60);
-		}
-		
-		return price;
-	}	
+	
 	
 	private ShopAccount getRemoteAccount(String ck, long shopId){
 		Map<String, Object> param = new HashMap<String, Object>();
@@ -503,29 +465,7 @@ public class ShortUrlService {
 		return ac;
 	}
 	
-	private ShopItemPrice getRemoteShopItemPrice(String ck, long shopId, long numIid){
-		Map<String, Object> param = new HashMap<String, Object>();
-		param.put("shop_id", shopId);
-		param.put("num_iid", numIid);
 
-		HTTPResult r = api.call("credit_get_cpc_item_price", param);
-		
-		ShopItemPrice ac = new ShopItemPrice();
-		ac.numIid = numIid;
-		int price = Settings.getInt("default_cpc_click_price", 10);
-		ac.price = price / 100.0f;				
-
-		if(r.isOK){
-			String f = r.getString("data.price");
-			String s = r.getString("data.status");
-			if(s != null && s.equals("0")){
-				ac.price = Float.parseFloat(f);
-			}
-			
-			cpcCache.set(ck, ac, 5 * 60);
-		}
-		return ac;
-	}	
 	
 
 	/**
@@ -554,7 +494,11 @@ public class ShortUrlService {
 									HTTPResult r = api.call("credit_get_user_not_found_shop_url", param);									
 									if(r.isOK){
 										String f = r.getString("data.url");
-										cpcCache.set(ac, f, 5 * 60);
+										if(f != null && f.startsWith("http:")){
+											cpcCache.set(ac, f, 5 * 60);
+										}else {
+											cpcCache.set(ac, "/", 5 * 60);											
+										}
 									}
 								}finally{
 									pendingShortKey.remove(ac);

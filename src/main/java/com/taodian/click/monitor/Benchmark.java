@@ -14,6 +14,7 @@ public class Benchmark {
 
 	public static final String CPC_CLICK_OK = "cpc_click_ok";
 	public static final String CPC_CLICK_FAILED = "cpc_click_erro";
+	public static final String CPC_ITEM_ERROR = "cpc_click_err";
 
 	
 	public long start = 0;
