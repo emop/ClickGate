@@ -383,15 +383,13 @@ public class ShortUrlService {
 		m.attachObject(account);
 		if(isOk && item.isOnSale){
 			m.done(Benchmark.CPC_CLICK_OK, 0);
-		}else {
-			m.done(Benchmark.CPC_CLICK_FAILED, 0);
-		}
-		
-		if(!item.isOnSale){
+		}else if(!item.isOnSale){	//商品下架
 			isOk = false;
 			m = Benchmark.start(Benchmark.CPC_ITEM_ERROR);
 			m.attachObject(item);
 			m.done();
+		}else {					//店铺未找到，或余额不足。
+			m.done(Benchmark.CPC_CLICK_FAILED, 0);
 		}
 		
 		return isOk;
