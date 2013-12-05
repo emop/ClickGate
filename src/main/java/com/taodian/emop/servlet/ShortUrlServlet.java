@@ -248,12 +248,21 @@ public class ShortUrlServlet extends HttpServlet {
 			}else {
 				if(model.isMobile && model.mobileLongUrl != null && model.mobileLongUrl.startsWith("http://")){
 					next.url = model.mobileLongUrl;
-				}else {
+				}else if(model.longUrl != null){
 					next.url = model.longUrl;
 				}
 			}
 		}
-		//next.isOK = next.url != null && next.url.startsWith("http:");
+		
+		//修复有些连接里面不是正确的HTTP。
+		if(next.url == null || !next.url.startsWith("http:")){
+			next.isOK = false;
+			int fix = next.url.indexOf("http:");
+			//log.info("url:" + next.url + ", fix:" + fix);
+			if(fix > 0){
+				next.url = next.url.substring(fix);
+			}
+		}
 		
 		return next;
 	}
