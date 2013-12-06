@@ -368,7 +368,7 @@ public class ShortUrlService {
 	 * @return
 	 */
 	private boolean hitShopClick(long shopId, long numIid){
-		ShopAccount account = this.getShopAccount(shopId);
+		ShopAccount account = taobao.getShopAccount(shopId);
 		ShopItem item = taobao.getShopItem(shopId, numIid);
 		if(account != null && item != null){
 			if(account.banlance > item.price){
@@ -394,85 +394,6 @@ public class ShortUrlService {
 		
 		return isOk;
 	}
-	
-	private ShopAccount getShopAccount(final long shopId){
-		final String ac = "shop_" + shopId;
-		ShopAccount account = null;
-		Object tmp = null;
-		for(int i = 0; i < 2 && tmp == null; i++){
-			tmp = cpcCache.get(ac);
-			if(tmp == null){
-				if(pendingShortQueue.remainingCapacity() > 1){
-					if(!pendingShortKey.contains(ac)){
-						pendingShortKey.add(ac);
-						shortUrlPool.execute(new Runnable(){
-							public void run(){
-								try{
-									getRemoteAccount(ac, shopId);
-								}finally{
-									pendingShortKey.remove(ac);
-									synchronized(ac){
-										ac.notifyAll();
-									}
-								}
-							}
-						});
-					}else {
-						log.warn("shop id in pending:" + ac);
-					}
-					synchronized(ac){
-						try {
-							ac.wait(1000 * 4);
-							tmp = cpcCache.get(ac, true);
-						} catch (InterruptedException e) {
-						}
-					}
-				}else {
-					log.error("Have too many pending shop account, queue size:" + pendingShortQueue.size());
-				}	
-			}			
-		}
-		
-		if(tmp != null && (tmp instanceof ShopAccount)){
-			account = (ShopAccount)tmp;
-		}else {
-			account = new ShopAccount();
-			account.shopId = shopId;
-			account.banlance = 0;
-			account.status = "not_found";
-			cpcCache.set(ac, account, 60);
-		}
-		return account;
-	}
-	
-	
-	
-	private ShopAccount getRemoteAccount(String ck, long shopId){
-		Map<String, Object> param = new HashMap<String, Object>();
-		param.put("shop_id", shopId);
-		param.put("user_id", shopId);
-		param.put("account_group", "cpc");
-
-		HTTPResult r = api.call("credit_get_credit_account", param);
-		
-		ShopAccount ac = new ShopAccount();
-		ac.shopId = shopId;
-		if(r.isOK){
-			String f = r.getString("data.banlance");
-			String s = r.getString("data.status");
-			ac.status = s;
-			if(s != null && s.equals("0")){
-				ac.banlance = Float.parseFloat(f);
-			}
-			cpcCache.set(ck, ac, 2 * 60);
-		}else {
-			ac.status = r.errorCode;
-		}
-		
-		return ac;
-	}
-	
-
 	
 
 	/**
@@ -520,7 +441,7 @@ public class ShortUrlService {
 					}
 					synchronized(ac){
 						try {
-							ac.wait(1000 * 4);
+							ac.wait(1000 * 2);
 							tmp = cpcCache.get(ac, true);
 						} catch (InterruptedException e) {
 						}

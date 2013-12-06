@@ -22,6 +22,11 @@ import com.taodian.emop.utils.SimpleCacheApi;
  * @author deonwu
  */
 public class TaobaoPool {
+	
+	public static final int ITEM_EXPIRES_TIME = 3 * 60 * 1000;
+	public static final int ITEM_REFRESH_EXPIRES_TIME = 30 * 1000;
+
+	
 	private Log log = LogFactory.getLog("click.taobaopool");
 	private TaodianApi api = null;
 	
@@ -55,17 +60,25 @@ public class TaobaoPool {
 		}
 		item = (ShopItem)tmp;
 		
+		boolean isNeedWait = false;
 		//如果超过3分钟没有刷新，等待刷新商品状态。
-		if(System.currentTimeMillis() - item.lastRefreshTime > 1000 * 60 * 3){
+		if(System.currentTimeMillis() - item.lastRefreshTime > ITEM_EXPIRES_TIME){
+			isNeedWait = true;
+		}
+		
+		/**
+		 * 提前一段时间开始刷新商品。避免等待。
+		 */
+		if(System.currentTimeMillis() - item.lastRefreshTime > ITEM_EXPIRES_TIME - ITEM_REFRESH_EXPIRES_TIME){
 			if(taskQueue.remainingCapacity() > 1 && !pendingTask.contains(ac)){
 				pendingTask.add(ac);
 				final ShopItem e = item;
 				threadPool.execute(new Runnable(){
 					public void run(){
 						try{
+							e.lastRefreshTime = System.currentTimeMillis();
 							refreshShopItem(e);
 							log.debug("refresh item status ok, price:" + e.price + ", onsale:" + e.isOnSale);
-							e.lastRefreshTime = System.currentTimeMillis();
 						}finally{
 							pendingTask.remove(ac);
 							synchronized(e){
@@ -75,20 +88,83 @@ public class TaobaoPool {
 					}
 				});
 			}
-			
-			//如果商品在状态刷新中，等待2秒。
-			if(pendingTask.contains(ac)){
-				synchronized(item){
-					try {
-						item.wait(1000 * 2);
-					} catch (InterruptedException e) {
-					}
-				}	
-			}
 		}
+		
+		//如果商品在状态刷新中，等待2秒。
+		if(isNeedWait){
+			synchronized(item){
+				try {
+					item.wait(1000 * 2);
+				} catch (InterruptedException e) {
+				}
+			}	
+		}		
 		
 		return item;
 	}
+	
+	public ShopAccount getShopAccount(final long shopId){
+		//final String ac = "item_" + shopId + "_" + numIid;
+		final String ac = "shop_" + shopId;
+		
+		Object tmp = cpcCache.get(ac, true);
+		ShopAccount item = null;
+		if(tmp == null){
+			tmp = getDefaultShopAccount(shopId);
+			cpcCache.set(ac, tmp, 5 * 60);
+		}
+		item = (ShopAccount)tmp;
+		
+		boolean isNeedWait = false;
+		//如果超过3分钟没有刷新，等待刷新商品状态。
+		if(System.currentTimeMillis() - item.lastRefreshTime > ITEM_EXPIRES_TIME){
+			isNeedWait = true;
+		}
+		
+		/**
+		 * 提前一段时间开始刷新商品。避免等待。
+		 */
+		if(System.currentTimeMillis() - item.lastRefreshTime > ITEM_EXPIRES_TIME - ITEM_REFRESH_EXPIRES_TIME){
+			if(taskQueue.remainingCapacity() > 1 && !pendingTask.contains(ac)){
+				pendingTask.add(ac);
+				final ShopAccount e = item;
+				threadPool.execute(new Runnable(){
+					public void run(){
+						try{
+							e.lastRefreshTime = System.currentTimeMillis();
+							refreshShopAccount(e);
+							log.debug("refresh shop account info ok, shop id:" + e.shopId + ", banlance:" + e.banlance + ", status:" + e.status);
+						}finally{
+							pendingTask.remove(ac);
+							synchronized(e){
+								e.notifyAll();
+							}
+						}
+					}
+				});
+			}
+		}
+		
+		//如果商品在状态刷新中，等待2秒。
+		if(isNeedWait){
+			synchronized(item){
+				try {
+					item.wait(1000 * 2);
+				} catch (InterruptedException e) {
+				}
+			}	
+		}		
+		
+		return item;
+	}
+
+	protected ShopAccount getDefaultShopAccount(long shopId){
+		ShopAccount item = new ShopAccount();
+		item.shopId = shopId;
+		item.status = "0";
+		item.banlance = 1000;		
+		return item;
+	}	
 	
 	protected ShopItem getDefaultItem(long shopId, long numIid){
 		ShopItem item = new ShopItem();
@@ -99,6 +175,27 @@ public class TaobaoPool {
 		item.price = itemPrice / 100.0f;
 		
 		return item;
+	}
+	
+	private void refreshShopAccount(ShopAccount account){
+		Map<String, Object> param = new HashMap<String, Object>();
+		param.put("shop_id", account.shopId);
+		param.put("user_id", account.shopId);
+		param.put("account_group", "cpc");
+
+		HTTPResult r = api.call("credit_get_credit_account", param);
+		
+		if(r.isOK){
+			String f = r.getString("data.banlance");
+			String s = r.getString("data.status");
+			account.status = s;
+			if(s != null && s.equals("0")){
+				account.banlance = Float.parseFloat(f);
+			}
+		}else {
+			account.status = r.errorCode;
+			account.lastRefreshTime = 0;
+		}
 	}
 	
 	private void refreshShopItem(ShopItem item){

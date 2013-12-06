@@ -7,6 +7,7 @@ public class ShopAccount implements Serializable{
 	public String status = "";
 	public long shopId;
 	public float banlance = 0;
+	public long lastRefreshTime = 0;
 	public long created = System.currentTimeMillis();
 	
 	public int hashCode(){
