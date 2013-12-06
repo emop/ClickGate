@@ -308,10 +308,10 @@ public class ShortUrlService {
 				next.url = model.longUrl;
 				
 				/**
-				 * 早期生成的店铺首页。
+				 * 早期生成的店铺首页。如果是单品链接，做强制转换重新生成。
 				 */
-				if(model.shopId == model.numIid){
-					next.url = "http://shop" + model.shopId + ".taobao.com/";				
+				if(model.shopId == model.numIid && next.url.startsWith("http://item")){
+					next.url = "http://shop" + model.shopId + ".taobao.com/";	
 				}
 			}else {
 				next.isOK = false;
