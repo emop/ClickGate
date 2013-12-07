@@ -53,16 +53,35 @@ public class DataExporter {
 			
 			int row = 0;
 
-			wsheet.addCell(new Label(0, row, "短网址"));   
+			wsheet.addCell(new Label(0, row, "短网址")); 
+			wsheet.setColumnView(0, 10);
+
 			wsheet.addCell(new Label(1, row, "商家"));  
+			wsheet.setColumnView(1, 12);
+
 			wsheet.addCell(new Label(2, row, "商品"));  
+			wsheet.setColumnView(2, 12);
+
 			wsheet.addCell(new Label(3, row, "推广者"));  
+			wsheet.setColumnView(3, 6);
+
 			wsheet.addCell(new Label(4, row, "点击单价"));  
+			wsheet.setColumnView(4, 7);
+			
 			wsheet.addCell(new Label(5, row, "访问IP"));  
+			wsheet.setColumnView(5, 14);
+
 			wsheet.addCell(new Label(6, row, "访问设备"));  
-			wsheet.addCell(new Label(7, row, "浏览器"));  
+			wsheet.setColumnView(6, 8);
+
+			wsheet.addCell(new Label(7, row, "浏览器")); 
+			wsheet.setColumnView(7, 8);
+
 			wsheet.addCell(new Label(8, row, "访问时间"));  
+			wsheet.setColumnView(8, 20);
+
 			wsheet.addCell(new Label(9, row, "访问来源"));  
+			wsheet.setColumnView(9, 80);
 			
 			DataIterator data = new DataIterator(field, value, start, end, api);
 			
