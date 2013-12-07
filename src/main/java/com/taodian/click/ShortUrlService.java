@@ -1,5 +1,6 @@
 package com.taodian.click;
 
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -453,6 +454,36 @@ public class ShortUrlService {
 		}
 		
 		return tmp == null ? "/" : tmp.toString();
+	}
+	
+	public void export(String field, String value, String start, String end, OutputStream os){
+		DataExporter.export(field, value, start, end, api, os);
+	}
+	
+	public boolean checkSecretParam(String field, String value, String secret, String time){
+		long curTime = System.currentTimeMillis();
+		long nTime = 0;
+		try{
+			nTime = Long.parseLong(time);
+		}catch(Exception e){}		
+		long diff = Math.abs(curTime - nTime * 1000);
+		
+		if(diff > 1000 * 60 * 10){
+			log.debug("check export param, timestamp diff so far:" + diff);
+			return false;
+		}		
+		String appKey = Settings.getString(Settings.TAODIAN_APPID, null); // System.getProperty("");
+		String appSecret = Settings.getString(Settings.TAODIAN_APPSECRET, null);
+		String key = field + value +  time + appKey + appSecret;
+		
+		String pSecret = TaodianApi.MD5(key);
+		if(secret != null && pSecret != null && pSecret.equals(secret)){
+			return true;
+		}
+
+		log.debug("check export param, secret error, key:" + key + ", param secret:" + secret + ", p:" + pSecret);
+		
+		return false;
 	}
 	
 }

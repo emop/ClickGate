@@ -52,7 +52,7 @@ click.zaol.cn -- 阿里云和聚石塔的DNS轮询。
 *  in_sae -- 是否在SAE环境中运行。默认n, 可选值(y|n)
 *  get_short_url_thread_count -- 查询短网址的线程数量。
 *  default_cpc_click_price -- 默认点击价格。(单位：分)
-
+*  export_no_auth -- 数据导出时，不做安全检查。
 
 本地编译和运行
 ===========
