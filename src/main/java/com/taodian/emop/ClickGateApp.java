@@ -27,6 +27,7 @@ public class ClickGateApp
 {
     public static void main( String[] args ) throws Exception
     {
+    	System.setProperty("user.timezone","Asia/Shanghai");
     	Settings.loadSettings();
     	//updateLog4jLevel("short_url");
     	startCleanLog("short_url");

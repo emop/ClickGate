@@ -1,7 +1,11 @@
 package com.taodian.click;
 
 import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -134,20 +138,44 @@ public class DataExporter {
 		private int page = 0;
 		private int pageSize = 500;
 		private ArrayBlockingQueue<JSONObject> queue = new ArrayBlockingQueue<JSONObject>(pageSize + 1);
-		private String field = "";
-		private String value = "";
+		//private String field = "";
+		//private String value = "";
 		
 		public DataIterator(String field, String value, String start, String end,
 				TaodianApi api){
 			this.api = api;
+			DateFormat dayFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			long startTime = 0, endTime = 0;
+			startTime = (System.currentTimeMillis() - System.currentTimeMillis() % 24 * 60 * 60 * 1000) /  1000;
+			endTime = startTime + 24 * 60 * 60;
+			if(start != null && start.length() > 0){
+				try {
+					Date startDate = dayFormate.parse(start + "00:00:00");
+					startTime = startDate.getTime() / 1000;
+				} catch (ParseException e) {
+					log.warn("export start time error:" + start);
+				}
+			}
+			if(end != null && end.length() > 0){
+				try {
+					Date endDate = dayFormate.parse(end + "23:59:59");
+					endTime = endDate.getTime() / 1000;
+				} catch (ParseException e) {
+					log.warn("export start time error:" + start);
+				}
+			}
+			field = field.replace("'", "").replace("\"", "");
+			value = value.replace("'", "").replace("\"", "");			
 			
 			sql = "select l.click_id, l.click_time, l.short_key, l.ip, CAST(l.device_type as char(1)) as device_type, " +
 			"l.user_agent, l.refer," +
 			"d.user_id, d.shop_id, d.num_iid, d.money, d.uid " +
 			 "from click_log l join rpt_activity_click_detail d using(click_id) where d." + field + "='" + value + "' " +
-			 "and topic_id=1000 order by click_time asc " +
+			 " and d.click_time > " + startTime + " and d.click_time < " + endTime + 
+			 " and topic_id=1000 order by d.click_time asc " +
 			"limit %s, %s";
 			
+			log.info("export data with sql:" + sql);
 			loadData();
 		}
 

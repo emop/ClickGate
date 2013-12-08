@@ -372,14 +372,14 @@ public class ShortUrlService {
 		ShopAccount account = taobao.getShopAccount(shopId);
 		ShopItem item = taobao.getShopItem(shopId, numIid);
 		if(account != null && item != null){
-			if(account.banlance > item.price){
+			if(account.banlance >= item.price){
 				float old = account.banlance;
 				account.banlance -= item.price;
 				log.info(String.format("shop click, shop:%1s old:%2$1.2f, new:%3$1.2f, price:%4$1.2f", account.shopId, old, account.banlance, item.price));
 			}
 		}
 		
-		boolean isOk = account != null && account.banlance > 0;
+		boolean isOk = account != null && account.banlance >= 0;
 		Benchmark m = Benchmark.start(Benchmark.CPC_CLICK_OK);
 		m.attachObject(account);
 		if(isOk && item.isOnSale){
