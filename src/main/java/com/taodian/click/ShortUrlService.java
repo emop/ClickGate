@@ -3,6 +3,7 @@ package com.taodian.click;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -317,6 +318,12 @@ public class ShortUrlService {
 			}else {
 				next.isOK = false;
 				next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
+				Map<String, String> param = new HashMap<String, String>();
+				param.put("shop_id", model.shopId + "");
+				param.put("user_id", model.userId + "");
+				param.put("num_iid", model.numIid + "");
+				param.put("short_key", model.shortKey);
+				next.url = resolveVariable(next.url, param);
 				log.debug("hit cpc error, to default url:" + next.url + ", user id:" + model.userId);
 			}
 		}else {
@@ -325,6 +332,14 @@ public class ShortUrlService {
 			next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
 		}
 		return next;
+	}
+	
+	private String resolveVariable(String str, Map<String, String> param){
+    	for(Entry<String, String> entry: param.entrySet()){
+    		str = str.replaceAll("\\$\\{" + entry.getKey() + "\\}", entry.getValue());
+    	}
+    	
+    	return str;
 	}
 	
 	private void writeClickLogWithApi(ShortUrlModel model){
@@ -379,7 +394,7 @@ public class ShortUrlService {
 			}
 		}
 		
-		boolean isOk = account != null && account.banlance >= 0;
+		boolean isOk = account != null && account.banlance > 0;
 		Benchmark m = Benchmark.start(Benchmark.CPC_CLICK_OK);
 		m.attachObject(account);
 		if(isOk && item.isOnSale){
