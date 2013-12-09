@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jxl.Workbook;
 import jxl.format.Colour;
@@ -84,9 +86,15 @@ public class DataExporter {
 			wsheet.addCell(new Label(8, row, "访问时间"));  
 			wsheet.setColumnView(8, 20);
 
-			wsheet.addCell(new Label(9, row, "访问来源"));  
-			wsheet.setColumnView(9, 80);
+			wsheet.addCell(new Label(9, row, "访问者ID"));  
+			wsheet.setColumnView(9, 12);
 			
+			wsheet.addCell(new Label(10, row, "访问来源"));  
+			wsheet.setColumnView(10, 80);
+
+			wsheet.addCell(new Label(11, row, "Agent"));  
+			wsheet.setColumnView(11, 80);
+
 			DataIterator data = new DataIterator(field, value, start, end, api);
 			
 			row++;
@@ -125,10 +133,35 @@ public class DataExporter {
 			d = "电脑";
 		}
 		
+		String browser = "";
+		String userAgent = rowData.get("user_agent") + "";
+		
+		//log.info("xx:" + userAgent + ", l:" + userAgent.length());
+		if(userAgent.length() > 0){
+			String[] names = new String[]{
+			"firefox", "msie", "opera", "chrome", "safari",
+            "mozilla", "seamonkey",    "konqueror", "netscape",
+            "gecko", "navigator", "mosaic", "lynx", "amaya",
+            "omniweb", "avant", "camino", "flock", "aol"};
+			
+			//#($browser)[/ ]?([0-9.]*)#
+			for(String n : names) {
+				String reg = "(" + n +"[/ ]?([0-9.]*)?)";
+				Pattern pa = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
+				Matcher ma = pa.matcher(userAgent);
+				if(ma.find()){
+					browser = ma.group(1);
+					break;
+				}
+			}
+		}
+		
 		wsheet.addCell(new Label(6, rowNum, d));  
-		wsheet.addCell(new Label(7, rowNum,  ""));  
+		wsheet.addCell(new Label(7, rowNum,  browser));  
 		wsheet.addCell(new Label(8, rowNum, rowData.get("click_time") + ""));  
-		wsheet.addCell(new Label(9, rowNum, rowData.get("refer") + ""));  		
+		wsheet.addCell(new Label(9, rowNum, rowData.get("uid") + ""));  	
+		wsheet.addCell(new Label(10, rowNum, rowData.get("refer") + ""));  	
+		wsheet.addCell(new Label(11, rowNum, userAgent));  			
 	}
 			
 	
@@ -150,7 +183,7 @@ public class DataExporter {
 			endTime = startTime + 24 * 60 * 60;
 			if(start != null && start.length() > 0){
 				try {
-					Date startDate = dayFormate.parse(start + "00:00:00");
+					Date startDate = dayFormate.parse(start.trim() + " 00:00:00");
 					startTime = startDate.getTime() / 1000;
 				} catch (ParseException e) {
 					log.warn("export start time error:" + start);
@@ -158,7 +191,7 @@ public class DataExporter {
 			}
 			if(end != null && end.length() > 0){
 				try {
-					Date endDate = dayFormate.parse(end + "23:59:59");
+					Date endDate = dayFormate.parse(end.trim() + " 23:59:59");
 					endTime = endDate.getTime() / 1000;
 				} catch (ParseException e) {
 					log.warn("export start time error:" + start);
