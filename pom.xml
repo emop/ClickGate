@@ -4,7 +4,7 @@
   <groupId>com.taodian.emop</groupId>
   <artifactId>ClickGate</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.0</version>
+  <version>1.0-SNAPSHOT</version>
   <name>ClickGate</name>
   <url>http://maven.apache.org</url>
 	<dependencies>
