@@ -1,6 +1,9 @@
 package com.taodian.click;
 
 import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -74,7 +77,7 @@ public class ShortUrlService {
 	public LinkedBlockingDeque<Runnable> writeLogQueue = null; //new LinkedBlockingDeque<Runnable>(150);
 
 	public CopyOnWriteArraySet<String> pendingShortKey = new CopyOnWriteArraySet<String>();
-	
+	public VisitorManager vm = null;
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -140,6 +143,8 @@ public class ShortUrlService {
 		}
 		
 		urlCacheTime = Settings.getInt(Settings.CACHE_URL_TIMEOUT, 60);
+		
+		vm = new VisitorManager(workerPool);
 		/*
 		if(inSAE){
 			cache = new SAECacheWrapper();
@@ -343,6 +348,18 @@ public class ShortUrlService {
 	}
 	
 	private void writeClickLogWithApi(ShortUrlModel model){
+		DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");		
+		String t = timeFormate.format(new Date(System.currentTimeMillis()));
+		String msg = String.format("%s %s %s %s [%s] %s", t, model.shortKey, model.uid, model.ip,
+				model.agent, model.refer);
+		vm.write(msg);
+		
+		if(accesslog != null){
+			accesslog.debug(msg);
+		}else {
+			log.debug(msg);
+		}
+		
 		Map<String, Object> param = new HashMap<String, Object>();
 		param.put("short_key", model.shortKey);
 		param.put("uid", model.uid);
@@ -351,15 +368,6 @@ public class ShortUrlService {
 		param.put("refer", model.refer);
 		
 		HTTPResult r = api.call("tool_short_url_click", param);
-		
-		ShortUrlModel m = new ShortUrlModel();
-		String msg = String.format("%s %s %s [%s] %s", model.shortKey, model.uid, model.ip,
-				model.agent, model.refer);
-		if(accesslog != null){
-			accesslog.debug(msg);
-		}else {
-			log.debug(msg);
-		}
 		if(!r.isOK){
 			log.warn("click log write error, short:" + model.shortKey + ", msg:" + r.errorMsg);
 		}
