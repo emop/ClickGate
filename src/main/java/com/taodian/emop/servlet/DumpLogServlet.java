@@ -45,6 +45,7 @@ public class DumpLogServlet extends HttpServlet {
 			String appkey = Settings.getString(Settings.TAODIAN_APPSECRET, "");
 			String checkKey = appid + "," + cid + "," + appkey;
 			String checkSign = TaodianApi.MD5(checkKey);
+			response.setHeader("Transfer-Encoding", "chunked");
 			if(checkSign.toLowerCase().equals(token.toLowerCase())){
 				Continuation c = ContinuationSupport.getContinuation(request, null);
 				service.vm.register(cid, new ClickVisitorChannel(c, response.getWriter()));
