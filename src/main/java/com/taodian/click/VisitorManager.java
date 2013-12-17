@@ -29,7 +29,7 @@ public class VisitorManager {
 		this.executor = pool;	
 	}
 	
-	public void register(String name, ClickVisitorChannel channel){
+	public synchronized void register(String name, ClickVisitorChannel channel){
 		
 		ClickVisitor v = clients.get(name);
 		if(v == null){

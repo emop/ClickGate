@@ -27,7 +27,7 @@ public class ClickVisitor {
 	public void addChannel(ClickVisitorChannel c){
 		this.channels.add(c);
 		
-		log.info(name + " add new channel:" + c.continuation);
+		log.info(name + " add new channel:" + c.continuation + ",c:" + c.toString() + ", writer:" + c.writer);
 		if(!buffer.isEmpty()){
 			flushMessage(c);
 		}
@@ -48,7 +48,7 @@ public class ClickVisitor {
 					iter.remove();
 
 					ch.continuation.resume();
-					log.info(name + " remove resumed channel:" + ch.continuation);
+					log.info(name + " remove resumed channel:" + ch.continuation + ",c:" + ch.toString() + ", writer:" + ch.writer);
 					continue;
 				}
 				try{
@@ -57,7 +57,7 @@ public class ClickVisitor {
 					isWrote = true;
 				}catch(Exception e){
 					iter.remove();
-					log.info(name + " remove exception channel:" + ch.continuation + ", exception:" + e.toString());
+					log.info(name + " remove exception channel:" + ch.continuation + ", exception:" + e.toString() + ",c:" + ch.toString() + ", writer:" + ch.writer);
 				}
 			}
 			if(!isWrote){
