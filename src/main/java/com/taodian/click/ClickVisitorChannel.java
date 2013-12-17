@@ -12,7 +12,7 @@ public class ClickVisitorChannel {
 	
 	public ClickVisitorChannel(Continuation c, PrintWriter p){
 		this.continuation = c;
-		this.writer = p;		
+		this.writer = p;
 	}
 	
 	public boolean isTimouted(){

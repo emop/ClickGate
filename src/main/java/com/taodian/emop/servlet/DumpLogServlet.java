@@ -9,6 +9,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.mortbay.util.ajax.Continuation;
 import org.mortbay.util.ajax.ContinuationSupport;
 
@@ -20,6 +22,7 @@ import com.taodian.emop.Settings;
 
 
 public class DumpLogServlet extends HttpServlet {
+	protected Log log = LogFactory.getLog("click.gate.servlet");
 	protected ShortUrlService service = null;
 	
 	public void init(ServletConfig config){
@@ -49,14 +52,16 @@ public class DumpLogServlet extends HttpServlet {
 			response.setHeader("Transfer-Encoding", "chunked");
 			if(checkSign.toLowerCase().equals(token.toLowerCase())){
 				PrintWriter r = response.getWriter();
-				synchronized(r){
-					Continuation c = ContinuationSupport.getContinuation(request, null);
-					service.vm.register(cid, new ClickVisitorChannel(c, r));
-					response.getWriter().println("CONNECTED");
-					response.getWriter().flush();
-					//响应头等30分钟写日志。
-					c.suspend(ClickVisitorChannel.TIME_OUT);
-				}
+				r.println("CONNECTED");
+				r.flush();
+
+				Continuation c = ContinuationSupport.getContinuation(request, null);
+				service.vm.register(cid, new ClickVisitorChannel(c, r));
+				
+				log.info("suspend '" + cid + "' connection, writer:" + r);
+				//响应头等30分钟写日志。
+				c.suspend(ClickVisitorChannel.TIME_OUT);
+				//log.info("new client '" + cid + "' add ok !");
 			}else {
 				response.getWriter().println("token签名错误。");				
 			}

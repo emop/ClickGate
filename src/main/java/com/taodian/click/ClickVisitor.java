@@ -1,10 +1,10 @@
 package com.taodian.click;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -15,7 +15,7 @@ public class ClickVisitor {
 	public String name = "";
 	
 	public BlockingQueue<String> buffer = new ArrayBlockingQueue<String>(200);
-	public CopyOnWriteArrayList<ClickVisitorChannel> channels = new CopyOnWriteArrayList<ClickVisitorChannel>();
+	public ArrayList<ClickVisitorChannel> channels = new ArrayList<ClickVisitorChannel>();
 	
 	//private 
 	private long lastWriteTime = 0;
@@ -25,17 +25,21 @@ public class ClickVisitor {
 	}
 	
 	public void addChannel(ClickVisitorChannel c){
-		synchronized(c.writer) {
-			log.info(name + " add new channel:" + c.continuation + ",c:" + c.toString() + ", writer:" + c.writer);
-			if(!buffer.isEmpty()){
-				flushMessage(c);
-			}
-			
+		log.info(name + " add new channel:" + c.continuation + ",c:" + c.toString() + ", writer:" + c.writer);
+		if(!buffer.isEmpty()){
+			flushMessage(c);
+		}
+		
+		synchronized(channels){
 			for(Iterator<ClickVisitorChannel> iter = channels.iterator(); iter.hasNext();){
 				ClickVisitorChannel ch = iter.next();
 				if(ch.writer.equals(c.writer)){
 					iter.remove();
-					ch.continuation.resume();
+					
+					if(ch.continuation.isPending()){
+						ch.continuation.resume();
+					}
+					//log.info(name + " remove same channel:" + ch.continuation + ", c:" + ch.toString() + ", writer:" + ch.writer);
 				}
 			}
 			this.channels.add(c);
@@ -51,13 +55,15 @@ public class ClickVisitor {
 			}
 		}else {
 			boolean isWrote = false;
-			for(Iterator<ClickVisitorChannel> iter = channels.iterator(); iter.hasNext();){
-				ClickVisitorChannel ch = iter.next();
-				synchronized(ch.writer) {
+			synchronized(channels){
+				for(Iterator<ClickVisitorChannel> iter = channels.iterator(); iter.hasNext();){
+					ClickVisitorChannel ch = iter.next();
 					if(!ch.continuation.isPending() || ch.isTimouted()){
 						iter.remove();
-	
-						ch.continuation.resume();
+						
+						if(ch.continuation.isPending()){
+							ch.continuation.resume();
+						}
 						log.info(name + " remove resumed channel:" + ch.continuation + ",c:" + ch.toString() + ", writer:" + ch.writer);
 						continue;
 					}
