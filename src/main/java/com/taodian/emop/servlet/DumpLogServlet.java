@@ -1,6 +1,7 @@
 package com.taodian.emop.servlet;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -47,12 +48,15 @@ public class DumpLogServlet extends HttpServlet {
 			String checkSign = TaodianApi.MD5(checkKey);
 			response.setHeader("Transfer-Encoding", "chunked");
 			if(checkSign.toLowerCase().equals(token.toLowerCase())){
-				Continuation c = ContinuationSupport.getContinuation(request, null);
-				service.vm.register(cid, new ClickVisitorChannel(c, response.getWriter()));
-				response.getWriter().println("CONNECTED");
-				response.getWriter().flush();
-				//响应头等30分钟写日志。
-				c.suspend(ClickVisitorChannel.TIME_OUT);
+				PrintWriter r = response.getWriter();
+				synchronized(r){
+					Continuation c = ContinuationSupport.getContinuation(request, null);
+					service.vm.register(cid, new ClickVisitorChannel(c, r));
+					response.getWriter().println("CONNECTED");
+					response.getWriter().flush();
+					//响应头等30分钟写日志。
+					c.suspend(ClickVisitorChannel.TIME_OUT);
+				}
 			}else {
 				response.getWriter().println("token签名错误。");				
 			}
