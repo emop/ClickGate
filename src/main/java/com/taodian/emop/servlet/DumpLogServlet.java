@@ -49,7 +49,8 @@ public class DumpLogServlet extends HttpServlet {
 			if(checkSign.toLowerCase().equals(token.toLowerCase())){
 				Continuation c = ContinuationSupport.getContinuation(request, null);
 				service.vm.register(cid, new ClickVisitorChannel(c, response.getWriter()));
-				
+				response.getWriter().println("CONNECTED");
+				response.getWriter().flush();
 				//响应头等30分钟写日志。
 				c.suspend(30 * 60 * 1000);
 			}else {
