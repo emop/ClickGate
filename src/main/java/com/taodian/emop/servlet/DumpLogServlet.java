@@ -52,7 +52,7 @@ public class DumpLogServlet extends HttpServlet {
 				response.getWriter().println("CONNECTED");
 				response.getWriter().flush();
 				//响应头等30分钟写日志。
-				c.suspend(30 * 60 * 1000);
+				c.suspend(ClickVisitorChannel.TIME_OUT);
 			}else {
 				response.getWriter().println("token签名错误。");				
 			}

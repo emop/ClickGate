@@ -6,9 +6,12 @@ import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import org.mortbay.log.Log;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class ClickVisitor {
+	private Log log = LogFactory.getLog("click.visitor");
+	
 	public String name = "";
 	
 	public BlockingQueue<String> buffer = new ArrayBlockingQueue<String>(200);
@@ -23,6 +26,8 @@ public class ClickVisitor {
 	
 	public void addChannel(ClickVisitorChannel c){
 		this.channels.add(c);
+		
+		log.info(name + " add new channel:" + c.continuation);
 		if(!buffer.isEmpty()){
 			flushMessage(c);
 		}
@@ -33,14 +38,17 @@ public class ClickVisitor {
 			if(buffer.remainingCapacity() > 0){
 				buffer.add(msg);
 			}else {
-				Log.debug(String.format("'%s' log write buffer is full。", name));
+				log.debug(String.format("'%s' log write buffer is full。", name));
 			}
 		}else {
 			boolean isWrote = false;
 			for(Iterator<ClickVisitorChannel> iter = channels.iterator(); iter.hasNext();){
 				ClickVisitorChannel ch = iter.next();
-				if(!ch.continuation.isPending()){
+				if(!ch.continuation.isPending() || ch.isTimouted()){
 					iter.remove();
+
+					ch.continuation.resume();
+					log.info(name + " remove resumed channel:" + ch.continuation);
 					continue;
 				}
 				try{
@@ -49,6 +57,7 @@ public class ClickVisitor {
 					isWrote = true;
 				}catch(Exception e){
 					iter.remove();
+					log.info(name + " remove exception channel:" + ch.continuation + ", exception:" + e.toString());
 				}
 			}
 			if(!isWrote){
