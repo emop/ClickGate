@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -205,6 +208,12 @@ public class ShortUrlServlet extends HttpServlet {
 				c.setPath("/");
 			}
 			c.setMaxAge(10 * 365 * 24 * 60 * 60);
+			
+			DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String newUser = "new_uid:%s,mobile:%s,ip:%s,host:%s,agent:[%s],created:%s";
+			String time = timeFormate.format(new Date(System.currentTimeMillis()));
+			newUser = String.format(newUser, c.getValue(), m.isMobile, m.ip, host, m.agent, time);
+			service.writeLog(newUser);
 			
 			m.uid = c.getValue();
 			response.addCookie(c);

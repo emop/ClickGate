@@ -374,6 +374,19 @@ public class ShortUrlService {
 
 	}
 	
+	/**
+	 * 
+	 * @param msg
+	 */
+	public void writeLog(String msg){
+		vm.write(msg);
+		if(accesslog != null){
+			accesslog.debug(msg);
+		}else {
+			log.debug(msg);
+		}
+	}
+	
 	public long newUserId(){
 		nextUID = (nextUID + 1) % MODE;
 		
