@@ -29,6 +29,8 @@ import com.taodian.click.ShortUrlService;
 import com.taodian.click.URLInput;
 import com.taodian.click.monitor.Benchmark;
 import com.taodian.emop.Settings;
+import com.taodian.emop.utils.CacheApi;
+import com.taodian.emop.utils.SimpleCacheApi;
 
 /**
  * 短网址跳转服务。利用TaodianAPI，把短地址转换为长连接。
@@ -45,6 +47,8 @@ public class ShortUrlServlet extends HttpServlet {
 	protected ShortUrlService service = null;
 	protected String templates = "";
 	protected Log log = LogFactory.getLog("click.gate.servlet");
+	
+	protected CacheApi newUser = new SimpleCacheApi();
 	
 	protected String secret = "不要问这个用来干什么，这是一个秘密。";
 	
@@ -213,11 +217,22 @@ public class ShortUrlServlet extends HttpServlet {
 			String newUser = "new_uid:%s,mobile:%s,ip:%s,host:%s,agent:[%s],created:%s";
 			String time = timeFormate.format(new Date(System.currentTimeMillis()));
 			newUser = String.format(newUser, c.getValue(), m.isMobile, m.ip, host, m.agent, time);
-			service.writeLog(newUser);
+			//service.writeLog(newUser);
+			if(req.getMethod().equals("POST")){
+				service.writeLog(newUser);
+			}else {
+				this.newUser.set(c.getValue(), newUser, 30);
+			}
 			
 			m.uid = c.getValue();
 			response.addCookie(c);
-		}		
+		}else if(req.getMethod().equals("POST")){
+			Object o = newUser.get(m.uid);
+			if(o != null){
+				service.writeLog(o + "");
+				newUser.remove(m.uid);
+			}
+		}
 	}
 	
 	protected NextURL postShortCheck(ShortUrlModel model, HttpServletRequest req){
