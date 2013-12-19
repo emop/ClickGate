@@ -89,9 +89,12 @@ public class ShortUrlServlet extends HttpServlet {
 			if(model != null && model.longUrl != null && model.longUrl.length() > 5){
 				model = model.copy();
 				trackClickInfo(model, req, response);
-
-				Map<String, String> param = createSubmitForm(key, model, req);
-				outputSubmitForm(param, response);
+				if(key.action == null || key.action.trim().length() == 0){
+					Map<String, String> param = createSubmitForm(key, model, req);
+					outputSubmitForm(param, response);
+				}else {
+					service.doAction(key.action, model, req, response);
+				}
 				
 				mark.attachObject(model);
 				mark.done();
@@ -117,7 +120,7 @@ public class ShortUrlServlet extends HttpServlet {
 		response.setStatus(HttpServletResponse.SC_OK);
 		response.setCharacterEncoding("utf8");
 		
-		if(req != null){
+		if(key != null){
 			Benchmark mark = Benchmark.start(Benchmark.SHORT_KEY_POST);
 			ShortUrlModel model = service.getTaobaokeUrlInfo(key, false);
 			if(model != null){
@@ -125,20 +128,27 @@ public class ShortUrlServlet extends HttpServlet {
 				trackClickInfo(model, req, response);
 				
 				mark.attachObject(model);
-				NextURL n = postShortCheck(model, req);
-				//log.warn("next url:" + n.isOK + ", url:" + n.url);
-				if(n.isOK){
-					service.writeClickLog(model);
-					mark.done();	
-				}else {
-					mark.done(Benchmark.SHORT_KEY_POST_CHECK_ERROR, 0);
-				}
 				
-				//设置302 响应头。
-				response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+				if(key.action == null || key.action.trim().length() == 0){
+					NextURL n = postShortCheck(model, req);
+					
+					if(n.isOK){
+						if(n.writeLog){
+							service.writeClickLog(model);
+						}
+						mark.done();
+					}else {
+						mark.done(Benchmark.SHORT_KEY_POST_CHECK_ERROR, 0);
+					}
+					
+					//设置302 响应头。
+					response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
 
-				String url = response.encodeRedirectURL(n.url);
-				response.sendRedirect(url);	
+					String url = response.encodeRedirectURL(n.url);
+					response.sendRedirect(url);						
+				}else {
+					service.doAction(key.action, model, req, response);
+				}				
 			}else {
 				mark.attachObject(key);
 				mark.done(Benchmark.SHORT_KEY_POST_NOTFOUND, 0);
@@ -266,7 +276,17 @@ public class ShortUrlServlet extends HttpServlet {
 		
 		next.url = "/";
 		model.isMobile = isMobile(req);
-		if(next.isOK){
+		
+		if(next.isOK) {
+			next = service.router.route(next, model, req);
+			
+			DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");		
+			String t = timeFormate.format(new Date(System.currentTimeMillis()));
+			String msg = String.format("$%s$%s$%s$%s$%s$%s$%s", t, model.shortKey, next.actionName,
+					model.uid, model.ip, model.agent, model.refer);
+			service.vm.write(msg);
+		}
+		if(next.isOK && next.actionName.equals(NextURL.FORWARD)){
 			if(model.shortKeySource != null && model.shortKeySource.equals("cpc")) {
 				next = service.cpcServiceCheck(model, next);
 			}else {
@@ -276,15 +296,15 @@ public class ShortUrlServlet extends HttpServlet {
 					next.url = model.longUrl;
 				}
 			}
-		}
 		
-		//修复有些连接里面不是正确的HTTP。
-		if(next.url == null || !next.url.startsWith("http:")){
-			next.isOK = false;
-			int fix = next.url.indexOf("http:");
-			//log.info("url:" + next.url + ", fix:" + fix);
-			if(fix > 0){
-				next.url = next.url.substring(fix);
+			//修复有些连接里面不是正确的HTTP。
+			if(next.url == null || !next.url.startsWith("http:")){
+				next.isOK = false;
+				int fix = next.url.indexOf("http:");
+				//log.info("url:" + next.url + ", fix:" + fix);
+				if(fix > 0){
+					next.url = next.url.substring(fix);
+				}
 			}
 		}
 		
@@ -376,6 +396,7 @@ public class ShortUrlServlet extends HttpServlet {
         	if(type.equals("c")){
         		url.type = URLInput.INPUT_SHORT_URL;
 				url.shortKey = ma.group(2);
+				url.action = ma.group(4);
         	}else if(type.equals("t") && ma.group(4) != null){
         		url.type = URLInput.INPUT_TAOKE_ONLINE;
 				try {

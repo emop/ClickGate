@@ -12,6 +12,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -23,6 +26,7 @@ import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
 import com.taodian.emop.utils.CacheApi;
 import com.taodian.emop.utils.SimpleCacheApi;
+import com.taodian.route.Router;
 
 /**
  * 短网址的服务类。
@@ -78,6 +82,7 @@ public class ShortUrlService {
 
 	public CopyOnWriteArraySet<String> pendingShortKey = new CopyOnWriteArraySet<String>();
 	public VisitorManager vm = null;
+	public Router router = null;
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -352,8 +357,7 @@ public class ShortUrlService {
 		String t = timeFormate.format(new Date(System.currentTimeMillis()));
 		String msg = String.format("%s %s %s %s [%s] %s", t, model.shortKey, model.uid, model.ip,
 				model.agent, model.refer);
-		vm.write(msg);
-		
+		//vm.write(msg);
 		if(accesslog != null){
 			accesslog.debug(msg);
 		}else {
@@ -395,6 +399,10 @@ public class ShortUrlService {
 	
 	public Map<String, Object> cacheStat(){
 		return cache.stat();
+	}
+	
+	public void doAction(String action, ShortUrlModel model, HttpServletRequest req, HttpServletResponse response){
+		
 	}
 	
 	/**

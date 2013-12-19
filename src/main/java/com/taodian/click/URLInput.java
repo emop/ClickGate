@@ -18,6 +18,7 @@ public class URLInput  implements Serializable{
 	public String userName = "";
 	public String info = "";
 	
+	public String action = "";	
 	
 	public String getURI(){
 		if(type.equals(INPUT_SHORT_URL)){
