@@ -54,7 +54,7 @@ public class HTML5RedisSessionManager implements SessionManager {
 		String cid = req.getParameter("cid");
 		if(cid != null && cid.length() > 10){
 			uid = convertUIDFromCid(cid);
-			log.info(String.format("cid(%s) -> uid(%s)", cid, uid));
+			log.debug(String.format("cid(%s) -> uid(%s)", cid, uid));
 			if(uid == null){
 				log.warn("not found cid data in redis, cid:" + cid);
 			}
