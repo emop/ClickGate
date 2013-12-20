@@ -97,8 +97,11 @@ public class HTML5RedisSessionManager implements SessionManager {
 		Object o = newUser.get(ck, true);
 		if(o == null){
 			Jedis j = getJedis();
-			o = j.lindex(ck, 0);
-			releaseConn(j);
+			try{
+				o = j.lindex(ck, 0);
+			}finally{
+				releaseConn(j);
+			}
 			if(o != null){
 				uid = o.toString();
 				newUser.set(ck, o, 60);
@@ -124,40 +127,43 @@ public class HTML5RedisSessionManager implements SessionManager {
 	
 	@Override
 	public String getSessionId(HttpServletRequest req) {
-		String ip = getRealIP(req);
-		String agent = req.getHeader("User-Agent");
+		String ip = getRealIP(req) + "";
+		String agent = req.getHeader("User-Agent") + "";
 		String cid =  TaodianApi.MD5(ip + agent); // "";
 		
 		String ck = "cid_" + cid;
 
 		if(newUser.get(ck, true) == null){
 			Jedis j = getJedis();
-			if(!j.exists(ck)){
-				DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				String time = timeFormate.format(new Date(System.currentTimeMillis()));
-				
-				/**
-				 * 如果设置之前由cookies的uid，直接绑定到老的uid上面。
-				 */
-				String uid = service.newUserId() + "";
-				if(req.getCookies() != null){
-					for(Cookie c: req.getCookies()){
-						if(c.getName().equals(EMOP_COOKIES)){
-							uid = c.getValue();
+			try{
+				if(!j.exists(ck)){
+					DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					String time = timeFormate.format(new Date(System.currentTimeMillis()));
+					
+					/**
+					 * 如果设置之前由cookies的uid，直接绑定到老的uid上面。
+					 */
+					String uid = service.newUserId() + "";
+					if(req.getCookies() != null){
+						for(Cookie c: req.getCookies()){
+							if(c.getName().equals(EMOP_COOKIES)){
+								uid = c.getValue() + "";
+							}
 						}
 					}
+					String host = req.getServerName() + "";
+					String isMobile = isMobile(req) + "";			
+					
+					String newUser = "new_uid:%s,mobile:%s,ip:%s,host:%s,agent:[%s],created:%s";
+					newUser = String.format(newUser, uid, isMobile, ip, host, agent, time);					
+					log.debug("new cid:" + ck + ", info:" + newUser);
+
+					j.rpush(ck, uid, isMobile, ip, host, agent, time);
+					this.newUser.set(ck, uid, 60);
 				}
-				String host = req.getServerName();
-				String isMobile = isMobile(req) + "";			
-				j.rpush(ck, uid, isMobile, ip, host, agent, time);
-				
-				String newUser = "new_uid:%s,mobile:%s,ip:%s,host:%s,agent:[%s],created:%s";
-				newUser = String.format(newUser, uid, isMobile, ip, host, agent, time);
-				
-				log.debug("new cid:" + ck + ", info:" + newUser);
-				this.newUser.set(ck, uid, 60);
+			}finally{
+				releaseConn(j);
 			}
-			releaseConn(j);
 		}
 		
 		return cid;

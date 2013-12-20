@@ -40,7 +40,7 @@ public class VisitorManager {
 	}
 	
 	public void write(String msg){
-		if(buffer.remainingCapacity() > 1){
+		if(buffer.remainingCapacity() > 5){
 			buffer.add(msg);
 			if(writeLock.tryLock()){
 				writeLock.unlock();
