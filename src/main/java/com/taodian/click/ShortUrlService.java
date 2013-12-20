@@ -21,11 +21,13 @@ import org.apache.commons.logging.LogFactory;
 import com.taodian.api.TaodianApi;
 import com.taodian.click.monitor.Benchmark;
 import com.taodian.click.monitor.StatusMonitor;
+import com.taodian.click.session.HTML5RedisSessionManager;
 import com.taodian.emop.Settings;
 import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
 import com.taodian.emop.utils.CacheApi;
 import com.taodian.emop.utils.SimpleCacheApi;
+import com.taodian.route.TargetURL;
 import com.taodian.route.Router;
 
 /**
@@ -83,6 +85,7 @@ public class ShortUrlService {
 	public CopyOnWriteArraySet<String> pendingShortKey = new CopyOnWriteArraySet<String>();
 	public VisitorManager vm = null;
 	public Router router = null;
+	public SessionManager sm = null;
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -150,6 +153,8 @@ public class ShortUrlService {
 		urlCacheTime = Settings.getInt(Settings.CACHE_URL_TIMEOUT, 60);
 		
 		vm = new VisitorManager(workerPool);
+		
+		sm = new HTML5RedisSessionManager(this);
 		/*
 		if(inSAE){
 			cache = new SAECacheWrapper();
@@ -310,7 +315,7 @@ public class ShortUrlService {
 		}
 	}
 	
-	public NextURL cpcServiceCheck(ShortUrlModel model, NextURL next){
+	public TargetURL cpcServiceCheck(ShortUrlModel model, TargetURL next){
 		/**
 		 * 如果没有商家信息，就不知道向谁收钱。不能跳转。
 		 */

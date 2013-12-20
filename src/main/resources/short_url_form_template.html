@@ -1,19 +1,31 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html>
     <head>
+    	<meta charset="utf-8" />
     </head>
 	<body>
 		<form id="sub" name="sub" action='http://${source_domain}/${uri}/?' method='POST'>
 <input name='refer' value='${refer}' type='hidden' /><input name='user_id' value='${user_id}' type='hidden' />
 <input name='click_time' value='${click_time}' type='hidden' />
 <input name='auto_mobile' value='${auto_mobile}' type='hidden' />
+<input name='cid' value='${cid}' type='hidden' id='cid' />
+
 <input id='code' name='check_code' value='' type='hidden' />
 		</form>
 		<script type="text/javascript">
+			if(window.localStorage){
+				var cid = localStorage.emop_cid;
+				var e_cid = document.getElementById("cid");
+				if(cid){
+					e_cid.value = cid;
+				}else {
+					localStorage.emop_cid = e_cid.value;
+				}
+			}
 			var key = '${code}';
 			var index_key = ${index_key} % 32;
 			var code = key.substring(index_key, index_key+32);
-			e = document.getElementById("code");
+			var e = document.getElementById("code");
 			e.value = code;
 			document.getElementById("sub").submit();
 		</script>

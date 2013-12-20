@@ -14,7 +14,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.ServletConfig;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -23,14 +22,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.taodian.api.TaodianApi;
-import com.taodian.click.NextURL;
 import com.taodian.click.ShortUrlModel;
 import com.taodian.click.ShortUrlService;
 import com.taodian.click.URLInput;
 import com.taodian.click.monitor.Benchmark;
 import com.taodian.emop.Settings;
-import com.taodian.emop.utils.CacheApi;
-import com.taodian.emop.utils.SimpleCacheApi;
+import com.taodian.route.Action;
+import com.taodian.route.TargetURL;
 
 /**
  * 短网址跳转服务。利用TaodianAPI，把短地址转换为长连接。
@@ -43,12 +41,9 @@ import com.taodian.emop.utils.SimpleCacheApi;
 public class ShortUrlServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	
-	protected static final String EMOP_COOKIES = "emop_click_uid";
 	protected ShortUrlService service = null;
 	protected String templates = "";
 	protected Log log = LogFactory.getLog("click.gate.servlet");
-	
-	protected CacheApi newUser = new SimpleCacheApi();
 	
 	protected String secret = "不要问这个用来干什么，这是一个秘密。";
 	
@@ -130,15 +125,16 @@ public class ShortUrlServlet extends HttpServlet {
 				mark.attachObject(model);
 				
 				if(key.action == null || key.action.trim().length() == 0){
-					NextURL n = postShortCheck(model, req);
+					TargetURL n = postShortCheck(model, req);
 					
-					if(n.isOK){
-						if(n.writeLog){
-							service.writeClickLog(model);
-						}
-						mark.done();
-					}else {
+					if(n.actionName.equals(Action.FORWARD)){
+						service.writeClickLog(model);						
+					}
+					
+					if(n.actionName.equals(Action.REJECT)){
 						mark.done(Benchmark.SHORT_KEY_POST_CHECK_ERROR, 0);
+					}else {
+						mark.done();					
 					}
 					
 					//设置302 响应头。
@@ -184,7 +180,9 @@ public class ShortUrlServlet extends HttpServlet {
 		
 		m.agent = m.agent == null ? "" : m.agent;
 		m.refer = m.refer == null ? "" : m.refer;
-		m.uid = null;
+		//m.uid = null;
+		m.uid = service.sm.getSessionUserId(req, response);
+		
 		if(m.ip == null){
 			m.ip = req.getHeader("HTTP_X_FORWARDED_FOR");
 			if(m.ip != null && m.ip.indexOf(',') > 0){
@@ -200,53 +198,11 @@ public class ShortUrlServlet extends HttpServlet {
 		if(m.ip == null){
 			m.ip = req.getRemoteHost();
 		}
-		
-		if(req.getCookies() != null){
-			for(Cookie c: req.getCookies()){
-				if(c.getName().equals(EMOP_COOKIES)){
-					m.uid = c.getValue();
-				}
-			}
-		}
-		if(m.uid == null){
-			Cookie c = new Cookie(EMOP_COOKIES, service.newUserId() + "");
-			String host = req.getServerName();
-			/*
-			if(host.endsWith(".cn") || host.endsWith(".com")){
-				String[] l = host.split("\\.");
-				host = l[l.length - 2] + "." + l[l.length - 1];
-			}
-			*/
-			c.setDomain(host);
-			if(!Settings.getString("in_sae", "n").equals("y")){
-				c.setPath("/");
-			}
-			c.setMaxAge(10 * 365 * 24 * 60 * 60);
-			
-			DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			String newUser = "new_uid:%s,mobile:%s,ip:%s,host:%s,agent:[%s],created:%s";
-			String time = timeFormate.format(new Date(System.currentTimeMillis()));
-			newUser = String.format(newUser, c.getValue(), m.isMobile, m.ip, host, m.agent, time);
-			//service.writeLog(newUser);
-			if(req.getMethod().equals("POST")){
-				service.writeLog(newUser);
-			}else {
-				this.newUser.set(c.getValue(), newUser, 30);
-			}
-			
-			m.uid = c.getValue();
-			response.addCookie(c);
-		}else if(req.getMethod().equals("POST")){
-			Object o = newUser.get(m.uid);
-			if(o != null){
-				service.writeLog(o + "");
-				newUser.remove(m.uid);
-			}
-		}
+
 	}
 	
-	protected NextURL postShortCheck(ShortUrlModel model, HttpServletRequest req){
-		NextURL next = new NextURL();
+	protected TargetURL postShortCheck(ShortUrlModel model, HttpServletRequest req){
+		TargetURL next = new TargetURL();
 		next.isOK = false;
 		
 		long c = 0;
@@ -259,7 +215,7 @@ public class ShortUrlServlet extends HttpServlet {
 		c = System.currentTimeMillis() - c;
 		
 		if(c > 0 && c < 120 * 1000){
-			String ref = secret + model.shortKey + "," + req.getParameter("user_id") + "," +  clickTime;
+			String ref = secret + model.shortKey + "," + model.agent + "," +  clickTime;
 			String hash = TaodianApi.MD5(ref);
 			
 			String code = req.getParameter("check_code");
@@ -277,16 +233,11 @@ public class ShortUrlServlet extends HttpServlet {
 		next.url = "/";
 		model.isMobile = isMobile(req);
 		
-		if(next.isOK) {
+		if(next.isOK && service.router != null) {
 			next = service.router.route(next, model, req);
-			
-			DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");		
-			String t = timeFormate.format(new Date(System.currentTimeMillis()));
-			String msg = String.format("$%s$%s$%s$%s$%s$%s$%s", t, model.shortKey, next.actionName,
-					model.uid, model.ip, model.agent, model.refer);
-			service.vm.write(msg);
 		}
-		if(next.isOK && next.actionName.equals(NextURL.FORWARD)){
+		
+		if(next.isOK && next.actionName.equals(Action.FORWARD)){
 			if(model.shortKeySource != null && model.shortKeySource.equals("cpc")) {
 				next = service.cpcServiceCheck(model, next);
 			}else {
@@ -308,6 +259,12 @@ public class ShortUrlServlet extends HttpServlet {
 			}
 		}
 		
+		DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");		
+		String t = timeFormate.format(new Date(System.currentTimeMillis()));
+		String msg = String.format("$%s$%s$%s$%s$%s$%s$%s", t, model.shortKey, next.actionName,
+				model.uid, model.ip, model.agent, model.refer);
+		service.vm.write(msg);
+		
 		return next;
 	}
 	
@@ -323,12 +280,14 @@ public class ShortUrlServlet extends HttpServlet {
 		p.put("user_id", model.uid);
 		p.put("refer", model.refer);
 		//p.put("short_key", model.shortKey);
-		
+		if(service.sm != null){
+			p.put("cid", service.sm.getSessionId(req));
+		}
 		p.put("uri", key.getURI());
 		p.put("auto_mobile", req.getParameter("auto_mobile"));	
 		p.put("source_domain", Settings.getString(Settings.TAOKE_SOURCE_DOMAIN, "wap.emop.cn"));
 		
-		String ref = secret + model.shortKey + "," + model.uid + "," + clickTime;
+		String ref = secret + model.shortKey + "," + model.agent + "," + clickTime;
 		
 		//log.debug(String.format("hash ref:%s", ref));
 

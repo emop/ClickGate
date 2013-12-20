@@ -4,7 +4,6 @@ import java.io.PrintWriter;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.taodian.click.NextURL;
 import com.taodian.click.ShortUrlModel;
 
 /**
@@ -13,7 +12,7 @@ import com.taodian.click.ShortUrlModel;
  * @author deonwu
  */
 public interface Router {
-	public NextURL route(NextURL next, ShortUrlModel model, HttpServletRequest req);
+	public TargetURL route(TargetURL next, ShortUrlModel model, HttpServletRequest req);
 	
 	/**
 	 * 添加一条路由规则。

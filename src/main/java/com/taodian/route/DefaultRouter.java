@@ -4,7 +4,6 @@ import java.io.PrintWriter;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.taodian.click.NextURL;
 import com.taodian.click.ShortUrlModel;
 
 public class DefaultRouter implements Router {
@@ -19,7 +18,7 @@ public class DefaultRouter implements Router {
 	protected RouteChain cpcForword = null;
 
 	@Override
-	public NextURL route(NextURL next, ShortUrlModel model,
+	public TargetURL route(TargetURL next, ShortUrlModel model,
 			HttpServletRequest req) {
 		// TODO Auto-generated method stub
 		return null;
