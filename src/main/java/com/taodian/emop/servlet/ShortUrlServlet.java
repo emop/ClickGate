@@ -127,8 +127,12 @@ public class ShortUrlServlet extends HttpServlet {
 				if(key.action == null || key.action.trim().length() == 0){
 					TargetURL n = postShortCheck(model, req);
 					
-					if(n.actionName.equals(Action.FORWARD)){
+					if(n.isOK && n.actionName.equals(Action.FORWARD)){
 						service.writeClickLog(model);						
+					}else {
+						if(log.isDebugEnabled()){
+							log.debug(String.format("ignore write click log, status:%s, action:%s", n.isOK, n.actionName));
+						}
 					}
 					
 					if(n.actionName.equals(Action.REJECT)){
@@ -204,6 +208,7 @@ public class ShortUrlServlet extends HttpServlet {
 	protected TargetURL postShortCheck(ShortUrlModel model, HttpServletRequest req){
 		TargetURL next = new TargetURL();
 		next.isOK = false;
+		next.actionName = Action.REJECT;
 		
 		long c = 0;
 		String clickTime = req.getParameter("click_time") + "";
@@ -222,6 +227,7 @@ public class ShortUrlServlet extends HttpServlet {
 			
 			if(code != null && hash != null && hash.equals(code)){
 				next.isOK = true;
+				next.actionName = Action.FORWARD;
 				model.refer = req.getParameter("refer");
 			}else {
 				log.warn(String.format("hash:%s != %s, ref:%s", code, hash, ref));

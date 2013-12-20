@@ -27,6 +27,7 @@ import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
 import com.taodian.emop.utils.CacheApi;
 import com.taodian.emop.utils.SimpleCacheApi;
+import com.taodian.route.Action;
 import com.taodian.route.TargetURL;
 import com.taodian.route.Router;
 
@@ -332,6 +333,7 @@ public class ShortUrlService {
 				}
 			}else {
 				next.isOK = false;
+				next.actionName = Action.IGNORE;
 				next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
 				Map<String, String> param = new HashMap<String, String>();
 				param.put("shop_id", model.shopId + "");
@@ -344,6 +346,7 @@ public class ShortUrlService {
 		}else {
 			log.debug("Not found shop id for CPC short url:" + model.shortKey);
 			next.isOK = false;
+			next.actionName = Action.IGNORE;
 			next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
 		}
 		return next;
