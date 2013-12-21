@@ -22,14 +22,17 @@ import com.taodian.api.TaodianApi;
 import com.taodian.click.monitor.Benchmark;
 import com.taodian.click.monitor.StatusMonitor;
 import com.taodian.click.session.HTML5RedisSessionManager;
+import com.taodian.click.session.SimpleCookieSessionManager;
 import com.taodian.emop.Settings;
 import com.taodian.emop.http.HTTPClient;
 import com.taodian.emop.http.HTTPResult;
 import com.taodian.emop.utils.CacheApi;
 import com.taodian.emop.utils.SimpleCacheApi;
 import com.taodian.route.Action;
-import com.taodian.route.TargetURL;
+import com.taodian.route.DefaultRouter;
+import com.taodian.route.RouteException;
 import com.taodian.route.Router;
+import com.taodian.route.TargetURL;
 
 /**
  * 短网址的服务类。
@@ -155,7 +158,26 @@ public class ShortUrlService {
 		
 		vm = new VisitorManager(workerPool);
 		
-		sm = new HTML5RedisSessionManager(this);
+		try{
+			HTML5RedisSessionManager r = new HTML5RedisSessionManager(this);
+			if(r.checkPingRedies()){
+				sm = r;
+			}else {
+				sm = new SimpleCookieSessionManager();
+			}
+		}catch(Exception e){
+			sm = new SimpleCookieSessionManager();
+			log.warn("!!!The session manager is dummy, It's only used for testing!!!!");
+		}
+		
+		router = new DefaultRouter();
+		try {
+			router.initRoute();
+			router.load("route.conf");
+		} catch (RouteException e) {
+			log.warn(e.toString(), e);
+		}
+		
 		/*
 		if(inSAE){
 			cache = new SAECacheWrapper();

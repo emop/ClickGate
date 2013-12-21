@@ -46,6 +46,15 @@ public class HTML5RedisSessionManager implements SessionManager {
 		connPool = new JedisPool(cfg, host);
 	}
 	
+	public boolean checkPingRedies(){
+		Jedis j = this.getJedis();
+		try{
+			return j.ping().equals("PONG");
+		}finally{
+			releaseConn(j);
+		}
+	}
+	
 	@Override
 	public String getSessionUserId(HttpServletRequest req,
 			HttpServletResponse response) {

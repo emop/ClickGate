@@ -131,21 +131,25 @@ public class ShortUrlServlet extends HttpServlet {
 						service.writeClickLog(model);						
 					}else {
 						if(log.isDebugEnabled()){
-							log.debug(String.format("ignore write click log, status:%s, action:%s", n.isOK, n.actionName));
+							log.debug(String.format("ignore write click log, status:%s, action:%s, url:%s", n.isOK, n.actionName, n.url));
 						}
 					}
 					
 					if(n.actionName.equals(Action.REJECT)){
 						mark.done(Benchmark.SHORT_KEY_POST_CHECK_ERROR, 0);
+
+						response.setContentType("text/plain");
+						response.getWriter().println("短网址拒绝访问:" + key);	
 					}else {
 						mark.done();					
+
+						//设置302 响应头。
+						response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+
+						String url = response.encodeRedirectURL(n.url);
+						response.sendRedirect(url);						
 					}
 					
-					//设置302 响应头。
-					response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
-
-					String url = response.encodeRedirectURL(n.url);
-					response.sendRedirect(url);						
 				}else {
 					service.doAction(key.action, model, req, response);
 				}				
@@ -243,7 +247,7 @@ public class ShortUrlServlet extends HttpServlet {
 			next = service.router.route(next, model, req);
 		}
 		
-		if(next.isOK && next.actionName.equals(Action.FORWARD)){
+		if(next.isOK && (next.actionName.equals(Action.FORWARD) || next.actionName.equals(Action.IGNORE))){
 			if(model.shortKeySource != null && model.shortKeySource.equals("cpc")) {
 				next = service.cpcServiceCheck(model, next);
 			}else {

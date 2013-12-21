@@ -49,7 +49,8 @@ public class DefaultRouteChain implements RouteChain {
 		w.lock();
 		try{
 			for(Iterator<Rule> iter = rules.iterator(); iter.hasNext();){
-				if(matcher.isMatch(rule, rule, true)){
+				Rule cur = iter.next();
+				if(matcher.isMatch(cur, rule, true)){
 					iter.remove();
 					ret = true;
 					break;

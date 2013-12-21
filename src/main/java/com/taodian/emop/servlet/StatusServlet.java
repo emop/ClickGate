@@ -29,6 +29,9 @@ public class StatusServlet extends HttpServlet {
 		response.setContentType("text/plain");
 		
 		StatusMonitor.output(response.getWriter());
+		
+		outputRouter(response.getWriter());
+		
 		cacheStatus(response.getWriter());
 		outputJVMStatus(response.getWriter());
 		
@@ -44,6 +47,12 @@ public class StatusServlet extends HttpServlet {
     	out.println("命中失败次数:" + st.get("hit_failed_count"));
     	out.println("当前对象个数:" + st.get("item_count"));
     	out.println("删除对象个数:" + st.get("item_rmeove_count"));
+    }
+    
+    private void outputRouter(PrintWriter out){
+    	out.println("\n==============路由规则=================");
+    	ShortUrlService s = ShortUrlService.getInstance();
+    	s.router.dump(out);
     }
     
     private void outputJVMStatus(PrintWriter out){

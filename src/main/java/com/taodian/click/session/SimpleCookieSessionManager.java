@@ -4,20 +4,20 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.taodian.click.SessionManager;
+import com.taodian.click.ShortUrlService;
 
 public class SimpleCookieSessionManager implements SessionManager  {
 
 	@Override
 	public String getSessionUserId(HttpServletRequest req,
 			HttpServletResponse response) {
-		// TODO Auto-generated method stub
-		return null;
+		return ShortUrlService.getInstance().newUserId() + "";
 	}
 
 	@Override
 	public String getSessionId(HttpServletRequest req) {
 		// TODO Auto-generated method stub
-		return null;
+		return "na";
 	}
 
 

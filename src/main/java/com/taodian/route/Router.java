@@ -16,17 +16,11 @@ public interface Router {
 	public TargetURL route(TargetURL next, ShortUrlModel model, HttpServletRequest req);
 	
 	/**
-	 * 添加一条路由规则。
+	 * 更新路由规则
 	 * @param expr
 	 * @return
 	 */
-	public boolean addRoute(String expr) throws RouteException;	
-	/**
-	 * 删除一条路由规则。
-	 * @param expr
-	 * @return
-	 */
-	public boolean delRoute(String expr) throws RouteException;
+	public boolean updateRouteTable(String expr) throws RouteException;	
 	
 	/**
 	 * 保存所有路由到文件。

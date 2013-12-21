@@ -1,6 +1,11 @@
 package com.taodian.route;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +57,7 @@ public class DefaultRouter implements Router {
 	/**
 	 * CPC 专用过滤规则。
 	 */
-	protected RouteChain cpcForword = null;
+	protected RouteChain cpcForward = null;
 	
 	//protected Options cmdOptions = null;
 	private Log log = LogFactory.getLog("click.route");    	
@@ -69,11 +74,14 @@ public class DefaultRouter implements Router {
 
 		Rule matched = input.match(rule);
 		if(matched == null && model.shortKeySource != null && model.shortKeySource.endsWith("cpc")){
-			matched = cpcForword.match(rule);
+			matched = cpcForward.match(rule);
 		}
 		if(matched != null){
+			if(log.isDebugEnabled()){
+				log.debug("match rule:" + this.convertRuleToLine("na", matched));
+			}
 			next.actionName = matched.targetAction;
-			if(matched.nextUrl != null){
+			if(matched.nextUrl != null && matched.nextUrl.trim().length() > 1){
 				next.url = matched.nextUrl;
 				if(!(next.url.startsWith("/") || next.url.startsWith("http:"))){
 					if(model.uri != null){
@@ -83,38 +91,37 @@ public class DefaultRouter implements Router {
 					}
 				}
 			}
+		}else {
+			if(log.isDebugEnabled()){
+				log.debug("not match:" + this.convertRuleToLine("na", rule));
+			}
 		}
 		
 		return next;
 	}
 
 	@Override
-	public boolean addRoute(String expr) throws RouteException{
+	public boolean updateRouteTable(String expr) throws RouteException{
 		CLI c = this.parseCommandLine(expr);
 		if(c.error != null){
 			throw new RouteException(c.error);
 		}
 		
-		if(c.chainName.equals("cpc")){
-			return cpcForword.addRoute(c.rule);
+		if(c.action.equals("add")){
+			if(c.chainName.equals("cpc")){
+				return cpcForward.addRoute(c.rule);
+			}else {
+				return input.addRoute(c.rule);
+			}
 		}else {
-			return input.addRoute(c.rule);
+			if(c.chainName.equals("cpc")){
+				return cpcForward.delRoute(c.rule);
+			}else {
+				return input.delRoute(c.rule);
+			}			
 		}
 	}
 
-	@Override
-	public boolean delRoute(String expr) throws RouteException{
-		CLI c = this.parseCommandLine(expr);
-		if(c.error != null){
-			throw new RouteException(c.error);
-		}
-
-		if(c.chainName.equals("cpc")){
-			return cpcForword.delRoute(c.rule);
-		}else {
-			return input.delRoute(c.rule);
-		}		
-	}
 
 	@Override
 	public void save(String path) throws IOException{
@@ -124,7 +131,26 @@ public class DefaultRouter implements Router {
 
 	@Override
 	public void load(String path) throws RouteException{
-		// TODO Auto-generated method stub
+
+		File f = new File(path);
+		
+		log.info("load route:" + path);
+		if(f.isFile()){
+			try {
+				InputStream ins = new FileInputStream(path);
+				BufferedReader reader = new BufferedReader(new InputStreamReader(ins, "utf8"));
+				for(String l = reader.readLine(); l != null; l = reader.readLine()){
+					if(l.trim().startsWith("#") || l.trim().length() == 0) continue;
+					boolean r = updateRouteTable(l.trim());
+					log.info("route:" + l + ", result:" + r);
+				}
+				reader.close();
+			} catch (Exception e) {
+				log.error(e, e);
+			}
+		}else {
+			log.warn("not route config:" + path);
+		}
 
 	}
 
@@ -137,7 +163,7 @@ public class DefaultRouter implements Router {
 		}
 
 		writer.println();
-		for(Rule r : input.rules()){
+		for(Rule r : cpcForward.rules()){
 			writer.println(convertRuleToLine("cpc", r));
 		}
 	}
@@ -179,7 +205,7 @@ public class DefaultRouter implements Router {
 		 * @todo 通用的Chain和CPC Chain目前使用相同的配置。 因为通用的还没有特别的需求。
 		 */
 		input = new DefaultRouteChain(m);
-		cpcForword = new DefaultRouteChain(m);
+		cpcForward = new DefaultRouteChain(m);
 		
 		//initCommandOption();
 	}
@@ -197,6 +223,7 @@ public class DefaultRouter implements Router {
 				c.chainName = cmd.getOptionValue("add");
 				c.action = "add";
 			}else if(cmd.hasOption('D')){
+				c.action = "del";
 				c.chainName = cmd.getOptionValue("del");				
 			}
 			
