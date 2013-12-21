@@ -4,8 +4,10 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import com.taodian.route.CPCChainRuleMatcher;
 import com.taodian.route.DefaultRouter.CLI;
 import com.taodian.route.RouteException;
+import com.taodian.route.Rule;
 
 /**
  * Unit test for simple App.
@@ -70,6 +72,28 @@ public class AppTest
     	assertEquals("action", "forward", c5.rule.targetAction);
     	assertEquals("next", "no_money", c5.rule.nextUrl);	    	
 
+    }
+    
+    public void testCPCChainRuleMatcher(){
+    	CPCChainRuleMatcher m = new CPCChainRuleMatcher();
+    	Rule r1 = new Rule();    	
+    	Rule check = new Rule();    	
+    	assertTrue("no strict empty rule", m.isMatch(r1, check,false));
+    	assertTrue("strict empty rule", m.isMatch(r1, check, true));
+    	
+    	check.sourceUserId = 1;
+    	assertTrue("no strict target have value", m.isMatch(r1, check,false));
+    	assertFalse("strict target have value", m.isMatch(r1, check, true));
+    	
+    	r1.sourceUserId = 1;
+    	check.sourceUserId = 1;
+    	assertTrue("no strict have same value", m.isMatch(r1, check, false));
+    	assertTrue("strict target have same value", m.isMatch(r1, check, true));
+
+    	r1.sourceUserId = 1;
+    	check.sourceUserId = 2;
+    	assertFalse("no strict value not equals", m.isMatch(r1, check, false));
+    	assertFalse("strict target have same value", m.isMatch(r1, check, true));    	
     }
     
 }

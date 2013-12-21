@@ -8,8 +8,8 @@ public class Rule {
 	public boolean sourceIsNewUser = false;
 	public boolean sourceIsMobile = false;
 	
-	public String sourceIP = null;
-	public String sourceShortKey = null;
+	public String sourceIP = "";
+	public String sourceShortKey = "";
 	
 	public String targetAction = "";
 	public String nextUrl = "";
