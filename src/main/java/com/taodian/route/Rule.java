@@ -12,7 +12,7 @@ public class Rule {
 	public String sourceShortKey = null;
 	
 	public String targetAction = "";
-	//public Date expiredTime = null;
+	public String nextUrl = "";
 	
 	public long expired = 0;
 }

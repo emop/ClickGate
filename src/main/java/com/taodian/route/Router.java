@@ -1,5 +1,6 @@
 package com.taodian.route;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 
 import javax.servlet.http.HttpServletRequest;
@@ -19,24 +20,29 @@ public interface Router {
 	 * @param expr
 	 * @return
 	 */
-	public boolean addRoute(String expr);	
+	public boolean addRoute(String expr) throws RouteException;	
 	/**
 	 * 删除一条路由规则。
 	 * @param expr
 	 * @return
 	 */
-	public boolean delRoute(String expr);
+	public boolean delRoute(String expr) throws RouteException;
 	
 	/**
 	 * 保存所有路由到文件。
 	 * @param path
 	 */
-	public void save(String path);
-	public void load(String path);
+	public void save(String path) throws IOException;
+	public void load(String path) throws RouteException;
 	
 	/**
 	 * 输出整个路由表。
 	 * @param writer
 	 */
 	public void dump(PrintWriter writer);
+	
+	/**
+	 * 初始化路由表。
+	 */
+	public void initRoute() throws RouteException;
 }

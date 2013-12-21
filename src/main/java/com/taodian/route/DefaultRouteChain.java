@@ -88,7 +88,7 @@ public class DefaultRouteChain implements RouteChain {
 			long cur = System.currentTimeMillis();
 			for(Iterator<Rule> iter = rules.iterator(); iter.hasNext();){
 				Rule r = iter.next();
-				if(r.expired < cur){
+				if(r.expired > 0 && r.expired < cur){
 					if(removed == null){
 						removed = new ArrayList<Rule>();
 					}

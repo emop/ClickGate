@@ -24,4 +24,5 @@
   <classpathentry kind="var" path="M2_REPO/net/sourceforge/jexcelapi/jxl/2.6/jxl-2.6.jar"/>
   <classpathentry kind="var" path="M2_REPO/redis/clients/jedis/2.1.0/jedis-2.1.0.jar"/>
   <classpathentry kind="var" path="M2_REPO/commons-pool/commons-pool/1.5.5/commons-pool-1.5.5.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"/>
 </classpath>
