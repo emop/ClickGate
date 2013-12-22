@@ -1,6 +1,8 @@
 package com.taodian.click;
 
+import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -97,6 +99,8 @@ public class ShortUrlService {
 	public Router router = null;
 	public SessionManager sm = null;
 	public JedisPool jedisPool = null; 
+	
+	private Actions actions = new Actions();
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -393,7 +397,8 @@ public class ShortUrlService {
 		 * 如果没有商家信息，就不知道向谁收钱。不能跳转。
 		 */
 		if(model.shopId > 0){
-			if(hitShopClick(model.shopId, model.numIid)){
+			String ret = hitShopClick(model.shopId, model.numIid);
+			if(ret.equals("ok")){
 				next.isOK = true;
 				next.url = model.longUrl;
 				
@@ -405,21 +410,15 @@ public class ShortUrlService {
 				}
 			}else {
 				next.isOK = false;
-				next.actionName = Action.IGNORE;
-				next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
-				Map<String, String> param = new HashMap<String, String>();
-				param.put("shop_id", model.shopId + "");
-				param.put("user_id", model.userId + "");
-				param.put("num_iid", model.numIid + "");
-				param.put("short_key", model.shortKey);
-				next.url = resolveVariable(next.url, param);
+				next.actionName = Action.REDIRECT;
+				next.url = "/c/" + model.shortKey + "/" + ret;
 				log.debug("hit cpc error, to default url:" + next.url + ", user id:" + model.userId);
 			}
 		}else {
 			log.debug("Not found shop id for CPC short url:" + model.shortKey);
 			next.isOK = false;
-			next.actionName = Action.IGNORE;
-			next.url = this.getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
+			next.actionName = Action.REDIRECT;
+			next.url = "/c/" + model.shortKey + "/cpc_error";
 		}
 		return next;
 	}
@@ -481,8 +480,23 @@ public class ShortUrlService {
 		return cache.stat();
 	}
 	
-	public void doAction(String action, ShortUrlModel model, HttpServletRequest req, HttpServletResponse response){
-		
+	public void doAction(String action, ShortUrlModel model, HttpServletRequest req, HttpServletResponse response) throws IOException{
+		try {
+			Method m = Actions.class.getMethod(action, ShortUrlModel.class, HttpServletRequest.class, HttpServletResponse.class);
+			if(m != null){
+				m.invoke(actions, new Object[]{model, req, response});
+			}else {
+				response.setContentType("text/plain");
+				response.setCharacterEncoding("utf8");
+				response.getWriter().println("不支持的Action:" + action);
+			}
+		}catch (Exception e){
+			log.error(e.toString(), e);
+			
+			response.setContentType("text/plain");
+			response.setCharacterEncoding("utf8");
+			response.getWriter().println("错误:" + e.toString());
+		}
 	}
 	
 	/**
@@ -492,7 +506,7 @@ public class ShortUrlService {
 	 * @param numIid
 	 * @return
 	 */
-	private boolean hitShopClick(long shopId, long numIid){
+	private String hitShopClick(long shopId, long numIid){
 		ShopAccount account = taobao.getShopAccount(shopId);
 		ShopItem item = taobao.getShopItem(shopId, numIid);
 		if(account != null && item != null){
@@ -503,21 +517,24 @@ public class ShortUrlService {
 			}
 		}
 		
+		String ret = "ok";
 		boolean isOk = account != null && account.banlance > 0;
 		Benchmark m = Benchmark.start(Benchmark.CPC_CLICK_OK);
 		m.attachObject(account);
 		if(isOk && item.isOnSale){
 			m.done(Benchmark.CPC_CLICK_OK, 0);
 		}else if(!item.isOnSale){	//商品下架
-			isOk = false;
+			//isOk = false;
+			ret = "on_sale";
 			m = Benchmark.start(Benchmark.CPC_ITEM_ERROR);
 			m.attachObject(item);
 			m.done();
 		}else {					//店铺未找到，或余额不足。
+			ret = "no_money";
 			m.done(Benchmark.CPC_CLICK_FAILED, 0);
 		}
 		
-		return isOk;
+		return ret;
 	}
 	
 
@@ -610,4 +627,31 @@ public class ShortUrlService {
 		return false;
 	}
 	
+	
+	class Actions {
+		public void no_money(ShortUrlModel m, HttpServletRequest req, HttpServletResponse response) throws IOException{
+			cpc_error(m, req, response);
+		}
+		
+		public void no_sale(ShortUrlModel m, HttpServletRequest req, HttpServletResponse response) throws IOException{
+			cpc_error(m, req, response);
+		}
+		
+		public void cpc_error(ShortUrlModel model, HttpServletRequest req, HttpServletResponse response) throws IOException{
+			String url = getUserClickNoEnableUrl(model.userId, model.outId, model.platform);
+			Map<String, String> param = new HashMap<String, String>();
+			param.put("shop_id", model.shopId + "");
+			param.put("user_id", model.userId + "");
+			param.put("num_iid", model.numIid + "");
+			param.put("short_key", model.shortKey);
+			String redirectUrl = resolveVariable(url, param);
+			log.debug("hit cpc error, to default url:" + redirectUrl + ", user id:" + model.userId);
+			
+			response.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+
+			redirectUrl = response.encodeRedirectURL(redirectUrl);
+			response.sendRedirect(redirectUrl);						
+		}
+		
+	}
 }

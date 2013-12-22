@@ -355,7 +355,7 @@ public class ShortUrlServlet extends HttpServlet {
 	}
 	
 	private URLInput getUrlKey(HttpServletRequest req){
-        Pattern pa = Pattern.compile("(c|t)/([a-zA-Z0-9]+)(/([%a-zA-Z0-9]+))?");
+        Pattern pa = Pattern.compile("(c|t)/([a-zA-Z0-9]+)(/([%a-zA-Z0-9_]+))?");
         Matcher ma = pa.matcher(req.getRequestURI());
         
         URLInput url = null;
