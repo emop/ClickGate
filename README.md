@@ -12,8 +12,8 @@
 *  支持API查询访问报表，点击详细。
 *  支持根据商品ID实时转换淘客链接，有大量商品时，不必全部转换成功才推广。 *即将发布*
 *  导出CSV/Excel格式的访问详细列表，方便做离线分析。
-*  动态修改PID功能，相同短网址多PID轮询功能。 *稍后开发*
 *  CPC统计下架商品，跳转到错误URL。URL中支持变量,${user_id},${shop_id},${num_iid},${short_key}
+*  路由规则，支持根据条件，设置不同的跳转方式，[详情见Wiki](https://github.com/emop/ClickGate/wiki/RouteRule)
 
 数据导出功能
 ==========
