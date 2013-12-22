@@ -17,6 +17,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 
 import com.taodian.api.TaodianApi;
 import com.taodian.click.monitor.Benchmark;
@@ -90,6 +96,7 @@ public class ShortUrlService {
 	public VisitorManager vm = null;
 	public Router router = null;
 	public SessionManager sm = null;
+	public JedisPool jedisPool = null; 
 	
 	public static synchronized ShortUrlService getInstance(){
 		if(ins == null){
@@ -178,11 +185,24 @@ public class ShortUrlService {
 			log.warn(e.toString(), e);
 		}
 		
-		/*
-		if(inSAE){
-			cache = new SAECacheWrapper();
+		String r = null;
+		try{
+			String host = Settings.getString("redis.host", "127.0.0.1");
+			JedisPoolConfig cfg = new JedisPoolConfig();
+			cfg.setMaxWait(1000);
+			cfg.setMaxIdle(20);
+			cfg.setMaxActive(100);
+			jedisPool = new JedisPool(cfg, host);
+			Jedis c = jedisPool.getResource();
+			r = c.ping();
+			jedisPool.returnResource(c);
+		}catch(Exception e){
+			log.warn("Failed to init redis dababase, msg:" + e.toString());
 		}
-		*/
+		if(r == null || !r.equals("PONG")){
+			jedisPool = null;
+			log.info("The redis database is disabled.");
+		}
 		taobao = new TaobaoPool();
 		taobao.start(shortUrlPool, api,
 				new TaodianApi(appKey, appSecret, "http://fmei.sinaapp.com/api/route",
@@ -262,11 +282,37 @@ public class ShortUrlService {
 		param.put("auto_mobile", "y");
 
 		String errorMsg = "";
+		
+		Jedis j = null;
+		if(jedisPool != null){
+			j = jedisPool.getResource();
+		}
+		
 		for(int i = 0; i < 2; i++){
-			HTTPResult r = api.call("tool_convert_long_url", param);
+			//HTTPResult r = api.call("tool_convert_long_url", param);			
+			String shortUrlData = null;
+			if (j != null){
+				j.select(1);
+				shortUrlData = j.get(shortKey);
+			}
+			
+			HTTPResult r = new HTTPResult();
+			boolean fromJedis = false;
+			if(shortUrlData != null){
+				r.json = (JSONObject)JSONValue.parse(shortUrlData);
+				r.isOK = true;
+				fromJedis = true;
+				log.debug(String.format("load url '" + uri + "' data from redis"));
+			}else {
+				r = api.call("tool_convert_long_url", param);
+			}
 			
 			ShortUrlModel m = new ShortUrlModel();
 			if(r.isOK){
+				if(!fromJedis && j != null) {
+					shortUrlData = JSONValue.toJSONString(r.json);
+					j.set(uri, shortUrlData);
+				}
 				if(i > 0){
 					log.warn(String.format("The short url '%s' is get with retry %s times", shortKey, i));
 				}
@@ -307,6 +353,10 @@ public class ShortUrlService {
 			try{
 				Thread.sleep(1000 * (i + 1));
 			}catch(Exception e){}
+		}
+		
+		if(j != null){
+			jedisPool.returnResource(j);
 		}
 	}
 	
