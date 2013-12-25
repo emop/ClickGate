@@ -27,6 +27,8 @@ import com.taodian.click.ShortUrlService;
 import com.taodian.click.URLInput;
 import com.taodian.click.monitor.Benchmark;
 import com.taodian.emop.Settings;
+import com.taodian.emop.utils.CacheApi;
+import com.taodian.emop.utils.SimpleCacheApi;
 import com.taodian.route.Action;
 import com.taodian.route.TargetURL;
 
@@ -46,6 +48,7 @@ public class ShortUrlServlet extends HttpServlet {
 	protected Log log = LogFactory.getLog("click.gate.servlet");
 	
 	protected String secret = "不要问这个用来干什么，这是一个秘密。";
+	private CacheApi signCache = new SimpleCacheApi();
 	
 	public void init(ServletConfig config){
 		service = ShortUrlService.getInstance();
@@ -234,9 +237,11 @@ public class ShortUrlServlet extends HttpServlet {
 				next.actionName = Action.FORWARD;
 				model.refer = req.getParameter("refer");
 			}else {
-				log.warn(String.format("hash:%s != %s, ref:%s, ip:%s, uid:%s, user id:%s", code, hash, ref, 
+				String orgKey = signCache.get(code) + "";
+				log.warn(String.format("hash:%s != %s, ref:%s, old:%s, ip:%s, uid:%s, user id:%s", code, hash, ref, orgKey, 
 						model.ip, model.uid, model.userId));
 			}
+			signCache.remove(code);
 		}else {
 			log.warn(String.format("the second submit time is delay so far, ms:" + c + ", ip:" + model.ip 
 					+ " uid:" + model.uid + ", user id:" + model.userId));			
@@ -304,6 +309,7 @@ public class ShortUrlServlet extends HttpServlet {
 		//log.debug(String.format("hash ref:%s", ref));
 
 	 	String hash = TaodianApi.MD5(ref);
+	 	signCache.set(hash, ref, 20);
 
 	 	int i = (int)(Math.random() * 32) % 32;
 	 	String header = hash.substring(0, i);

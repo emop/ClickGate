@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,7 +14,7 @@ import com.taodian.emop.Settings;
 
 
 public class SimpleCacheApi implements CacheApi {
-	private Map<String, CacheItem> cache = new HashMap<String, CacheItem>();
+	private Map<String, CacheItem> cache = new ConcurrentHashMap<String, CacheItem>();
 	private Lock l = new ReentrantLock();
 	private long lastCleanUp = System.currentTimeMillis();
 	private CacheStat stat = new CacheStat();
