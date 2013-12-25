@@ -234,10 +234,12 @@ public class ShortUrlServlet extends HttpServlet {
 				next.actionName = Action.FORWARD;
 				model.refer = req.getParameter("refer");
 			}else {
-				log.warn(String.format("hash:%s != %s, ref:%s", code, hash, ref));
+				log.warn(String.format("hash:%s != %s, ref:%s, ip:%s, uid:%s, user id:%s", code, hash, ref, 
+						model.ip, model.uid, model.userId));
 			}
 		}else {
-			log.warn(String.format("the second submit time is delay so far, ms:" + c));			
+			log.warn(String.format("the second submit time is delay so far, ms:" + c + ", ip:" + model.ip 
+					+ " uid:" + model.uid + ", user id:" + model.userId));			
 		}
 		
 		next.url = "/";
