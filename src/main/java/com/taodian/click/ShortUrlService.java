@@ -289,7 +289,11 @@ public class ShortUrlService {
 		
 		Jedis j = null;
 		if(jedisPool != null){
-			j = jedisPool.getResource();
+			try{
+				j = jedisPool.getResource();
+			}catch(Exception e){
+				log.warn("Failed to get redis connection:" + e.toString());
+			}
 		}
 		
 		for(int i = 0; i < 2; i++){
