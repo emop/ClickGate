@@ -172,6 +172,7 @@ public class HTML5RedisSessionManager implements SessionManager {
 					log.debug("new cid:" + ck + ", info:" + newUser);
 
 					j.rpush(ck, uid, isMobile, ip, host, agent, time);
+					j.expire(ck, 60 * 60 * 24 * 30);
 					this.newUser.set(ck, uid, 60);
 				}
 			}finally{

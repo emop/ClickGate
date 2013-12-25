@@ -329,6 +329,7 @@ public class ShortUrlService {
 				if(!fromJedis && j != null) {
 					shortUrlData = JSONValue.toJSONString(r.json);
 					j.set(uri, shortUrlData);
+					j.expire(uri, 60 * 60 * 24 * 30);
 				}
 				if(i > 0){
 					log.warn(String.format("The short url '%s' is get with retry %s times", shortKey, i));
