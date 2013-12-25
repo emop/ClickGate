@@ -529,7 +529,7 @@ public class ShortUrlService {
 			m.done(Benchmark.CPC_CLICK_OK, 0);
 		}else if(!item.isOnSale){	//商品下架
 			//isOk = false;
-			ret = "on_sale";
+			ret = "no_sale";
 			m = Benchmark.start(Benchmark.CPC_ITEM_ERROR);
 			m.attachObject(item);
 			m.done();
