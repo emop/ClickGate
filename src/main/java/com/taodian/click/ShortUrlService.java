@@ -301,7 +301,7 @@ public class ShortUrlService {
 			try{
 				j = jedisPool.getResource();
 			}catch(Exception e){
-				log.warn("Failed to get redis connection:" + e.toString());
+				log.warn("Failed to get redis connection:" + e.toString(), e);
 			}
 		}
 		

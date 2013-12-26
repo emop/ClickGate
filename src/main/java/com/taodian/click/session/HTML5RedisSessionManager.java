@@ -110,10 +110,12 @@ public class HTML5RedisSessionManager implements SessionManager {
 		Object o = newUser.get(ck, true);
 		if(o == null){
 			Jedis j = getJedis();
-			try{
-				o = j.lindex(ck, 0);
-			}finally{
-				releaseConn(j);
+			if(j != null){
+				try{
+					o = j.lindex(ck, 0);
+				}finally{
+					releaseConn(j);
+				}
 			}
 			if(o != null){
 				uid = o.toString();
@@ -127,8 +129,13 @@ public class HTML5RedisSessionManager implements SessionManager {
 	}
 
 	public Jedis getJedis(){
-		Jedis d = connPool.getResource();
-		d.select(DS_COMMON_DATA);
+		Jedis d = null;
+		try{
+			d = connPool.getResource();
+			d.select(DS_COMMON_DATA);
+		}catch(Exception e){
+			log.warn("Redis connection error:" + e.toString(), e);
+		}
 		return d;
 	}
 	
@@ -149,7 +156,7 @@ public class HTML5RedisSessionManager implements SessionManager {
 		if(newUser.get(ck, true) == null){
 			Jedis j = getJedis();
 			try{
-				if(!j.exists(ck)){
+				if(j == null || !j.exists(ck)){
 					DateFormat timeFormate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 					String time = timeFormate.format(new Date(System.currentTimeMillis()));
 					
@@ -170,9 +177,10 @@ public class HTML5RedisSessionManager implements SessionManager {
 					String newUser = "new_uid:%s,mobile:%s,ip:%s,host:%s,agent:[%s],created:%s";
 					newUser = String.format(newUser, uid, isMobile, ip, host, agent, time);					
 					log.debug("new cid:" + ck + ", info:" + newUser);
-
-					j.rpush(ck, uid, isMobile, ip, host, agent, time);
-					j.expire(ck, 60 * 60 * 24 * 30);
+					if(j != null){
+						j.rpush(ck, uid, isMobile, ip, host, agent, time);
+						j.expire(ck, 60 * 60 * 24 * 30);
+					}
 					this.newUser.set(ck, uid, 60);
 				}
 			}finally{
