@@ -176,7 +176,7 @@ public class DefaultRouter implements Router {
 		if(r.sourceShopId > 0){
 			c += " -shop_id " + r.sourceShopId;
 		}
-		if(r.sourceShopId > 0){
+		if(r.sourceNumIid > 0){
 			c += " -num_iid " + r.sourceShopId;
 		}
 		if(r.sourceShortKey != null && r.sourceShortKey.length() > 0){
