@@ -117,6 +117,9 @@ public class ShortUrlModel implements Serializable, Cloneable{
 	 */
 	public String mobileLongUrl = null;
 	
+	public String version = null;
+	public String planId = null;
+	
 	
 	public Date clickTime = new Date(System.currentTimeMillis());
 

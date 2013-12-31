@@ -15,6 +15,9 @@ public class ShopItem implements Serializable{
 	public ShopAccount shop = null;
 	public long shopId;
 	public long numIid;
+	public long libId;
+	public long planId;
+	public int version;
 	public float price;
 	public boolean isOnSale = false;
 	

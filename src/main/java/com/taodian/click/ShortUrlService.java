@@ -353,6 +353,13 @@ public class ShortUrlService {
 				if(tmp != null && tmp.length() > 0){
 					m.shopId = Long.parseLong(tmp);
 				}
+				tmp = r.getString("data.lib_id");
+				if(tmp != null && tmp.length() > 0){
+					m.libId = Integer.parseInt(tmp);
+				}
+				
+				m.version = r.getString("data.cpc_price_version");
+				m.planId = r.getString("data.cpc_plan");
 				
 				cache.set(uri, m, urlCacheTime * 60);
 				
@@ -411,7 +418,7 @@ public class ShortUrlService {
 		 * 如果没有商家信息，就不知道向谁收钱。不能跳转。
 		 */
 		if(model.shopId > 0){
-			String ret = hitShopClick(model.shopId, model.numIid);
+			String ret = hitShopClick(model.shopId, model.numIid, model.libId, model.version, model.planId);
 			if(ret.equals("ok")){
 				next.isOK = true;
 				next.url = model.longUrl;
@@ -520,9 +527,9 @@ public class ShortUrlService {
 	 * @param numIid
 	 * @return
 	 */
-	private String hitShopClick(long shopId, long numIid){
+	private String hitShopClick(long shopId, long numIid, int libId, String version, String planId){
 		ShopAccount account = taobao.getShopAccount(shopId);
-		ShopItem item = taobao.getShopItem(shopId, numIid);
+		ShopItem item = taobao.getShopItem(shopId, numIid, libId, version, planId);
 		if(account != null && item != null){
 			if(account.banlance >= item.price){
 				float old = account.banlance;
@@ -532,7 +539,7 @@ public class ShortUrlService {
 		}
 		
 		String ret = "ok";
-		boolean isOk = account != null && account.banlance > 0;
+		boolean isOk = account != null && account.banlance > 0 && item != null && item.price > 0;
 		Benchmark m = Benchmark.start(Benchmark.CPC_CLICK_OK);
 		m.attachObject(account);
 		if(isOk && item.isOnSale){

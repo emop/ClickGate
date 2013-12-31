@@ -50,8 +50,9 @@ public class TaobaoPool {
 		this.emopApi = emopApi;
 	}
 	
-	public ShopItem getShopItem(final long shopId, final long numIid){ 
-		final String ac = "item_" + shopId + "_" + numIid;
+	public ShopItem getShopItem(final long shopId, final long numIid, final int libId,
+			String version, String planId){
+		final String ac = "item_" + shopId + "_" + numIid + "_" + libId + "_" + version + "_" + planId;
 		Object tmp = cpcCache.get(ac, true);
 		ShopItem item = null;
 		if(tmp == null){
@@ -198,19 +199,23 @@ public class TaobaoPool {
 		}
 	}
 	
-	private void refreshShopItem(ShopItem item){
+	private void refreshShopItem(final ShopItem item){
 		Map<String, Object> param = new HashMap<String, Object>();
 		param.put("shop_id", item.shopId);
 		param.put("num_iid", item.numIid);
+		param.put("lib_id", item.libId);
+		param.put("plan_id", item.planId);
+		param.put("version", item.version);
 
 		HTTPResult r = api.call("credit_get_cpc_item_price", param);
 		
 		if(r.isOK){
 			String f = r.getString("data.price");
-			String s = r.getString("data.status");
-			if(s != null && s.equals("0")){
+			if(f != null && f.length() > 0){
 				item.price = Float.parseFloat(f);
 			}
+		}else {
+			log.warn("Failed to refresh shop item:" + r.errorMsg);
 		}
 		
 		if(item.shopId != item.numIid) {
