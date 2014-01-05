@@ -301,8 +301,13 @@ public class ShortUrlServlet extends HttpServlet {
 			p.put("cid", service.sm.getSessionId(req));
 		}
 		p.put("uri", key.getURI());
-		p.put("auto_mobile", req.getParameter("auto_mobile"));	
-		p.put("source_domain", Settings.getString(Settings.TAOKE_SOURCE_DOMAIN, "wap.emop.cn"));
+		p.put("auto_mobile", req.getParameter("auto_mobile"));
+		
+		//支持为不同的域名，定义二次跳转域名。
+		String domain = Settings.getString(Settings.TAOKE_SOURCE_DOMAIN, "wap.emop.cn");
+		String c = req.getServerName();
+		domain = Settings.getString("host_" + c, domain);
+		p.put("source_domain", domain);
 		
 		String ref = secret + model.shortKey + "," + model.agent + "," + clickTime;
 		

@@ -59,6 +59,7 @@ click.zaol.cn -- 阿里云和聚石塔的DNS轮询。
 *  default_cpc_click_price -- 默认点击价格。(单位：分)
 *  export_no_auth -- 数据导出时，不做安全检查。
 *  redis.host -- 配置本地redis 数据库地址。
+*  host_DOMAIN -- 配置二次提交的域名。 例如:(host_rushui.com=c.rushui.com)
 
 本地编译和运行
 ===========
