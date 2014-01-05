@@ -303,10 +303,14 @@ public class ShortUrlServlet extends HttpServlet {
 		p.put("uri", key.getURI());
 		p.put("auto_mobile", req.getParameter("auto_mobile"));
 		
-		//支持为不同的域名，定义二次跳转域名。
+		/**
+		 * 支持为不同的域名，定义二次跳转域名。但是CPC连接，还是必须使用冒泡作为二次跳转域名。
+		 */
 		String domain = Settings.getString(Settings.TAOKE_SOURCE_DOMAIN, "wap.emop.cn");
-		String c = req.getServerName();
-		domain = Settings.getString("host_" + c, domain);
+		if(model.shortKeySource == null || !model.shortKeySource.equals("cpc")){
+			String c = req.getServerName();
+			domain = Settings.getString("host_" + c, domain);
+		}
 		p.put("source_domain", domain);
 		
 		String ref = secret + model.shortKey + "," + model.agent + "," + clickTime;
