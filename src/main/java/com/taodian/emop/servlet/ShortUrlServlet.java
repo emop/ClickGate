@@ -310,6 +310,9 @@ public class ShortUrlServlet extends HttpServlet {
 		if(model.shortKeySource == null || !model.shortKeySource.equals("cpc")){
 			String c = req.getServerName();
 			domain = Settings.getString("host_" + c, domain);
+			if(log.isDebugEnabled()){
+				log.debug("convert source domain, host:" + c + ", source:" + domain);
+			}
 		}
 		p.put("source_domain", domain);
 		
