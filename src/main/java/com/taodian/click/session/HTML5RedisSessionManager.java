@@ -183,6 +183,8 @@ public class HTML5RedisSessionManager implements SessionManager {
 					}
 					this.newUser.set(ck, uid, 60);
 				}
+			}catch(Exception e){
+				log.warn("Redis create session error:" + e.toString(), e);
 			}finally{
 				releaseConn(j);
 			}
