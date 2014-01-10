@@ -71,6 +71,9 @@ public class HTML5RedisSessionManager implements SessionManager {
 		
 		if(uid == null){
 			uid = req.getParameter("user_id");
+			if(uid != null){
+				saveNewUid(req, cid, uid);
+			}
 		}
 		
 		if(uid == null){
@@ -126,6 +129,22 @@ public class HTML5RedisSessionManager implements SessionManager {
 		}
 		
 		return uid;
+	}
+	
+	private void saveNewUid(HttpServletRequest req, String cid, String uid){
+		String ck = "cid_" + cid;
+		
+		newUser.set(ck, uid, 60 * 5);
+		Jedis j = getJedis();
+		if(j != null){
+			try{
+				j.rpush(ck, uid, "false", getRealIP(req), req.getRemoteHost(), 
+						req.getHeader("User-Agent"), "old");
+				j.expire(ck, 60 * 60 * 24 * 30);
+			}finally{
+				releaseConn(j);
+			}
+		}
 	}
 
 	public Jedis getJedis(){
