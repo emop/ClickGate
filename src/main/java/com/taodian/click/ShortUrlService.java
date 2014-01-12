@@ -300,8 +300,13 @@ public class ShortUrlService {
 		if(jedisPool != null){
 			try{
 				j = jedisPool.getResource();
+				j.select(1);
 			}catch(Exception e){
 				log.warn("Failed to get redis connection:" + e.toString(), e);
+				if(j != null){
+					jedisPool.returnResource(j);
+					j = null;
+				}
 			}
 		}
 		
@@ -309,7 +314,6 @@ public class ShortUrlService {
 			//HTTPResult r = api.call("tool_convert_long_url", param);			
 			String shortUrlData = null;
 			if (j != null){
-				j.select(1);
 				shortUrlData = j.get(shortKey);
 			}
 			
