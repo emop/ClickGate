@@ -99,6 +99,7 @@ public class ShortUrlService {
 	public Router router = null;
 	public SessionManager sm = null;
 	public JedisPool jedisPool = null; 
+	private long lastRedisConnectTime = 0;
 	
 	private Actions actions = new Actions();
 	
@@ -189,24 +190,6 @@ public class ShortUrlService {
 			log.warn(e.toString(), e);
 		}
 		
-		String r = null;
-		try{
-			String host = Settings.getString("redis.host", "127.0.0.1");
-			JedisPoolConfig cfg = new JedisPoolConfig();
-			cfg.setMaxWait(1000);
-			cfg.setMaxIdle(20);
-			cfg.setMaxActive(100);
-			jedisPool = new JedisPool(cfg, host);
-			Jedis c = jedisPool.getResource();
-			r = c.ping();
-			jedisPool.returnResource(c);
-		}catch(Exception e){
-			log.warn("Failed to init redis dababase, msg:" + e.toString());
-		}
-		if(r == null || !r.equals("PONG")){
-			jedisPool = null;
-			log.info("The redis database is disabled.");
-		}
 		taobao = new TaobaoPool();
 		taobao.start(shortUrlPool, api,
 				new TaodianApi(appKey, appSecret, "http://fmei.sinaapp.com/api/route",
@@ -296,96 +279,139 @@ public class ShortUrlService {
 
 		String errorMsg = "";
 		
+		Jedis j = getJedis();
+		try{
+			for(int i = 0; i < 2; i++){
+				//HTTPResult r = api.call("tool_convert_long_url", param);			
+				String shortUrlData = null;
+				if (j != null){
+					shortUrlData = j.get(shortKey);
+				}
+				
+				HTTPResult r = new HTTPResult();
+				boolean fromJedis = false;
+				if(shortUrlData != null){
+					r.json = (JSONObject)JSONValue.parse(shortUrlData);
+					r.isOK = true;
+					fromJedis = true;
+					log.debug(String.format("load url '" + uri + "' data from redis"));
+				}else {
+					r = api.call("tool_convert_long_url", param);
+				}
+				
+				ShortUrlModel m = new ShortUrlModel();
+				if(r.isOK){
+					if(!fromJedis && j != null) {
+						shortUrlData = JSONValue.toJSONString(r.json);
+						j.set(uri, shortUrlData);
+						j.expire(uri, 60 * 60 * 24 * 30);
+					}
+					if(i > 0){
+						log.warn(String.format("The short url '%s' is get with retry %s times", shortKey, i));
+					}
+					m.shortKey = shortKey;
+					m.longUrl = r.getString("data.long_url");
+					m.mobileLongUrl = r.getString("data.mobile_long_url");
+					m.shortKeySource = r.getString("data.create_source");
+					m.platform = r.getString("data.plat_form");
+					m.outId = r.getString("data.out_id");
+					
+					String tmp = r.getString("data.user_id");
+					if(tmp != null && tmp.length() > 0){
+						m.userId = Integer.parseInt(tmp);
+					}
+					tmp = r.getString("data.num_iid");
+					if(tmp != null && tmp.length() > 0){
+						m.numIid = Long.parseLong(tmp);
+					}
+					tmp = r.getString("data.shop_id");
+					if(tmp != null && tmp.length() > 0){
+						m.shopId = Long.parseLong(tmp);
+					}
+					tmp = r.getString("data.lib_id");
+					if(tmp != null && tmp.length() > 0){
+						m.libId = Integer.parseInt(tmp);
+					}
+					
+					m.version = r.getString("data.cpc_price_version");
+					m.planId = r.getString("data.cpc_plan");
+					
+					cache.set(uri, m, urlCacheTime * 60);
+					
+					break;
+				} //已经明确的返回错误了，就不用重试了。		
+				else if(r.errorCode != null && r.errorCode.equals("not_found")){
+					m.shortKey = shortKey;
+					m.longUrl = "/";
+					m.mobileLongUrl = "/";
+					cache.set(uri, m, urlCacheTime * 60);
+					
+					break;
+				}
+				errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
+				log.error(String.format("The short url '%s' is not found, error:%s", shortKey, errorMsg));
+				try{
+					Thread.sleep(1000 * (i + 1));
+				}catch(Exception e){}
+			}
+		}finally{	
+			returnJedis(j);
+		}
+	}
+	
+	public Jedis getJedis(){
 		Jedis j = null;
+		if(jedisPool == null){
+			reConnect();	
+		}
+		
 		if(jedisPool != null){
 			try{
 				j = jedisPool.getResource();
 				j.select(1);
 			}catch(Exception e){
 				log.warn("Failed to get redis connection:" + e.toString(), e);
-				if(j != null){
-					jedisPool.returnResource(j);
-					j = null;
-				}
+				jedisPool.destroy();
+				jedisPool = null;
 			}
 		}
 		
-		for(int i = 0; i < 2; i++){
-			//HTTPResult r = api.call("tool_convert_long_url", param);			
-			String shortUrlData = null;
-			if (j != null){
-				shortUrlData = j.get(shortKey);
-			}
-			
-			HTTPResult r = new HTTPResult();
-			boolean fromJedis = false;
-			if(shortUrlData != null){
-				r.json = (JSONObject)JSONValue.parse(shortUrlData);
-				r.isOK = true;
-				fromJedis = true;
-				log.debug(String.format("load url '" + uri + "' data from redis"));
-			}else {
-				r = api.call("tool_convert_long_url", param);
-			}
-			
-			ShortUrlModel m = new ShortUrlModel();
-			if(r.isOK){
-				if(!fromJedis && j != null) {
-					shortUrlData = JSONValue.toJSONString(r.json);
-					j.set(uri, shortUrlData);
-					j.expire(uri, 60 * 60 * 24 * 30);
-				}
-				if(i > 0){
-					log.warn(String.format("The short url '%s' is get with retry %s times", shortKey, i));
-				}
-				m.shortKey = shortKey;
-				m.longUrl = r.getString("data.long_url");
-				m.mobileLongUrl = r.getString("data.mobile_long_url");
-				m.shortKeySource = r.getString("data.create_source");
-				m.platform = r.getString("data.plat_form");
-				m.outId = r.getString("data.out_id");
-				
-				String tmp = r.getString("data.user_id");
-				if(tmp != null && tmp.length() > 0){
-					m.userId = Integer.parseInt(tmp);
-				}
-				tmp = r.getString("data.num_iid");
-				if(tmp != null && tmp.length() > 0){
-					m.numIid = Long.parseLong(tmp);
-				}
-				tmp = r.getString("data.shop_id");
-				if(tmp != null && tmp.length() > 0){
-					m.shopId = Long.parseLong(tmp);
-				}
-				tmp = r.getString("data.lib_id");
-				if(tmp != null && tmp.length() > 0){
-					m.libId = Integer.parseInt(tmp);
-				}
-				
-				m.version = r.getString("data.cpc_price_version");
-				m.planId = r.getString("data.cpc_plan");
-				
-				cache.set(uri, m, urlCacheTime * 60);
-				
-				break;
-			} //已经明确的返回错误了，就不用重试了。		
-			else if(r.errorCode != null && r.errorCode.equals("not_found")){
-				m.shortKey = shortKey;
-				m.longUrl = "/";
-				m.mobileLongUrl = "/";
-				cache.set(uri, m, urlCacheTime * 60);
-				
-				break;
-			}
-			errorMsg = "code:" + r.errorCode + ", msg:" + r.errorMsg;
-			log.error(String.format("The short url '%s' is not found, error:%s", shortKey, errorMsg));
-			try{
-				Thread.sleep(1000 * (i + 1));
-			}catch(Exception e){}
-		}
-		
-		if(j != null){
+		return j;
+	}
+	
+	public void returnJedis(Jedis j){
+		if(jedisPool != null && j != null){
 			jedisPool.returnResource(j);
+		}
+	}
+	
+	protected void reConnect(){
+		if(System.currentTimeMillis() - this.lastRedisConnectTime < 60 * 1000){
+			return;
+		}
+		lastRedisConnectTime = System.currentTimeMillis();
+		
+		String r = null;
+		String host = null;
+		try{
+			host = Settings.getString("redis.host", "127.0.0.1");
+			JedisPoolConfig cfg = new JedisPoolConfig();
+			cfg.setMaxWait(1000);
+			cfg.setMaxIdle(20);
+			cfg.setMaxActive(100);
+			jedisPool = new JedisPool(cfg, host);
+			Jedis c = jedisPool.getResource();
+			r = c.ping();
+			jedisPool.returnResource(c);
+		}catch(Exception e){
+			log.warn("Failed to init redis dababase, msg:" + e.toString());
+		}
+		
+		if(r == null || !r.equals("PONG")){
+			jedisPool = null;
+			log.info("The redis database is disabled.");
+		}else {
+			log.info("Connect to redis ok, host:" + host);			
 		}
 	}
 	

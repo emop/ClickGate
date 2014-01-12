@@ -32,27 +32,21 @@ public class HTML5RedisSessionManager implements SessionManager {
 	protected static final String EMOP_COOKIES = "emop_click_uid";
 	protected CacheApi newUser = new SimpleCacheApi();
 	protected ShortUrlService service = null;
-	private JedisPool connPool = null;
-	//protected 
 	
 	public HTML5RedisSessionManager(ShortUrlService s){
 		this.service = s;
-		
-		String host = Settings.getString("redis.host", "127.0.0.1");
-		JedisPoolConfig cfg = new JedisPoolConfig();
-		cfg.setMaxWait(1000);
-		cfg.setMaxIdle(20);
-		cfg.setMaxActive(100);
-		connPool = new JedisPool(cfg, host);
 	}
 	
 	public boolean checkPingRedies(){
 		Jedis j = this.getJedis();
-		try{
-			return j.ping().equals("PONG");
-		}finally{
-			releaseConn(j);
+		if(j != null){
+			try{
+				return j.ping().equals("PONG");
+			}finally{
+				releaseConn(j);
+			}
 		}
+		return false;
 	}
 	
 	@Override
@@ -148,20 +142,11 @@ public class HTML5RedisSessionManager implements SessionManager {
 	}
 
 	public Jedis getJedis(){
-		Jedis d = null;
-		try{
-			d = connPool.getResource();
-			d.select(DS_COMMON_DATA);
-		}catch(Exception e){
-			log.warn("Redis connection error:" + e.toString(), e);
-		}
-		return d;
+		return service.getJedis();
 	}
 	
 	public void releaseConn(Jedis jedis){
-		if(jedis != null){
-			connPool.returnResource(jedis);
-		}
+		service.returnJedis(jedis);
 	}	
 	
 	@Override
