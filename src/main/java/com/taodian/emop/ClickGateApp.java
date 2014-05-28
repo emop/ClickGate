@@ -15,6 +15,7 @@ import org.mortbay.jetty.servlet.ServletHandler;
 import com.taodian.click.ShortUrlService;
 import com.taodian.emop.servlet.ApiRouterServlet;
 import com.taodian.emop.servlet.DumpLogServlet;
+import com.taodian.emop.servlet.ExporterMembersServlet;
 import com.taodian.emop.servlet.ExporterServlet;
 import com.taodian.emop.servlet.IndexServlet;
 import com.taodian.emop.servlet.ShortUrlServlet;
@@ -50,6 +51,7 @@ public class ClickGateApp
         context.addServletWithMapping(ShortUrlServlet.class, "/t/*");
         //数据导出。
         context.addServletWithMapping(ExporterServlet.class, "/export/*");
+        context.addServletWithMapping(ExporterMembersServlet.class, "/members/*");
         
         context.addServletWithMapping(StatusServlet.class, "/status");
         

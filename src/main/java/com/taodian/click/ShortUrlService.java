@@ -652,6 +652,11 @@ public class ShortUrlService {
 		DataExporter.export(field, value, start, end, api, os);
 	}
 	
+	public void exportMember(String url, OutputStream os){
+		//DataExporter.export(field, value, start, end, api, os);
+		MemberExporter.export(url, api, os);
+	}	
+	
 	public boolean checkSecretParam(String field, String value, String secret, String time){
 		long curTime = System.currentTimeMillis();
 		long nTime = 0;
